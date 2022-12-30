@@ -16,6 +16,7 @@ namespace Eocron.Sharding.Tests
         [SetUp]
         public async Task SetUp()
         {
+            var logger = new TestLogger();
             _shards = new List<Mock<IShard<string, string, string>>>();
             _shardFactory = new Mock<IShardFactory<string, string, string>>();
             _shardFactory.Setup(x => x.CreateNewShard(It.IsAny<string>())).Returns<string>((id) =>
@@ -28,7 +29,7 @@ namespace Eocron.Sharding.Tests
                 return shard.Object;
             });
             _cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-            _pool = new ConstantShardPool<string, string, string>(_shardFactory.Object, 3);
+            _pool = new ConstantShardPool<string, string, string>(logger, _shardFactory.Object, 3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
             _task = _pool.RunAsync(_cts.Token);
             await Task.Delay(1);
         }

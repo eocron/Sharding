@@ -71,7 +71,7 @@ namespace Eocron.Sharding.Processing
             {
                 var process = await GetRunningProcessAsync(ct).ConfigureAwait(false);
                 using var logScope = BeginProcessLoggingScope(process);
-                await _inputSerializer.SerializeTo(process.StandardInput, messages, ct).ConfigureAwait(false);
+                await _inputSerializer.SerializeToAsync(process.StandardInput, messages, ct).ConfigureAwait(false);
                 if (ProcessHelper.IsDead(process) && process.ExitCode != 0) throw CreatePublishedWithErrorException(process);
             }
             finally

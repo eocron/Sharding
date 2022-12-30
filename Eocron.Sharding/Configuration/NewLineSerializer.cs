@@ -7,7 +7,7 @@ namespace Eocron.Sharding.Configuration
 {
     public sealed class NewLineSerializer : IStreamWriterSerializer<string>
     {
-        public async Task SerializeTo(StreamWriter writer, IEnumerable<string> items, CancellationToken ct)
+        public async Task SerializeToAsync(StreamWriter writer, IEnumerable<string> items, CancellationToken ct)
         {
             foreach (var item in items) await writer.WriteLineAsync(item).ConfigureAwait(false);
         }

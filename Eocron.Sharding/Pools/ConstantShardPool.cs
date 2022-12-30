@@ -4,34 +4,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Eocron.Sharding.DataStructures;
 using Eocron.Sharding.Jobs;
+using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Pools
 {
     public sealed class ConstantShardPool<TInput, TOutput, TError> : IShardPool<TInput, TOutput, TError>, IJob
     {
-        public ConstantShardPool(IShardFactory<TInput, TOutput, TError> factory, int size)
+        public ConstantShardPool(
+            ILogger logger, 
+            IShardFactory<TInput, TOutput, TError> factory, 
+            int size,
+            TimeSpan priorityRecalculationInterval,
+            TimeSpan checkTimeout)
         {
             if (size < 1)
                 throw new ArgumentOutOfRangeException(nameof(size));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _size = size;
+            _unreserved =
+                new PriorityDictionaryThreadSafetyGuard<string, long, IShard<TInput, TOutput, TError>>(
+                    new PriorityDictionary<string, long, IShard<TInput, TOutput, TError>>(
+                        StringComparer.InvariantCultureIgnoreCase));
+            _immutable = new ConcurrentDictionary<string, IImmutableShard>(StringComparer.InvariantCultureIgnoreCase);
+            _recalculateJob = new RecalculatePrioritiesJob(
+                _unreserved, 
+                _immutable,
+                logger ?? throw new ArgumentNullException(nameof(logger)), 
+                priorityRecalculationInterval,
+                checkTimeout);
         }
 
         public void Dispose()
         {
-        }
-
-        public bool TryReserve(string id, out IShard<TInput, TOutput, TError> shard)
-        {
-            if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentNullException(nameof(id));
-            return _unreserved.TryRemove(id, out shard);
-        }
-
-        public void Return(IShard<TInput, TOutput, TError> shard)
-        {
-            _unreserved.TryAdd(shard.Id, shard);
+            _recalculateJob.Dispose();
         }
 
         public IEnumerable<IImmutableShard> GetAllShards()
@@ -54,39 +61,128 @@ namespace Eocron.Sharding.Pools
             return _immutable.ContainsKey(id);
         }
 
+        public void Return(IShard<TInput, TOutput, TError> shard)
+        {
+            _unreserved.Enqueue(shard.Id, long.MaxValue, shard);
+        }
+
         public async Task RunAsync(CancellationToken stoppingToken)
         {
-            var shards = new Stack<IShard<TInput, TOutput, TError>>();
+            var jobs = new Stack<IJob>();
             try
             {
                 var tasks = Enumerable.Range(0, _size)
                     .Select(_ =>
                     {
                         var shard = _factory.CreateNewShard(Guid.NewGuid().ToString());
-                        shards.Push(shard);
-                        _unreserved.TryAdd(shard.Id, shard);
+                        jobs.Push(shard);
+                        _unreserved.Enqueue(shard.Id, long.MaxValue, shard);
                         _immutable.TryAdd(shard.Id, shard);
-                        return shard;
+                        return (IJob)shard;
                     })
+                    .Concat(new[] { _recalculateJob })
                     .Select(x => Task.Run(() => x.RunAsync(stoppingToken), stoppingToken))
                     .ToList();
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             finally
             {
-                foreach (var shard in shards) shard.Dispose();
+                foreach (var shard in jobs) shard.Dispose();
                 _unreserved.Clear();
                 _immutable.Clear();
             }
         }
 
-        private readonly ConcurrentDictionary<string, IShard<TInput, TOutput, TError>> _unreserved =
-            new(StringComparer.InvariantCultureIgnoreCase);
+        public bool TryReserve(string id, out IShard<TInput, TOutput, TError> shard)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentNullException(nameof(id));
+            return _unreserved.TryRemoveByKey(id, out shard);
+        }
 
-        private readonly ConcurrentDictionary<string, IImmutableShard> _immutable =
-            new(StringComparer.InvariantCultureIgnoreCase);
+        public bool TryReserveFree(out string id, out IShard<TInput, TOutput, TError> shard)
+        {
+            return _unreserved.TryDequeue(out id, out shard);
+        }
+
+        private readonly ConcurrentDictionary<string, IImmutableShard> _immutable;
+        private readonly IJob _recalculateJob;
 
         private readonly int _size;
+
+        private readonly IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> _unreserved;
         private readonly IShardFactory<TInput, TOutput, TError> _factory;
+
+        private class RecalculatePrioritiesJob : IJob
+        {
+            public RecalculatePrioritiesJob(
+                IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> unreserved,
+                IDictionary<string, IImmutableShard> immutable, ILogger logger, 
+                TimeSpan interval,
+                TimeSpan timeout)
+            {
+                _unreserved = unreserved;
+                _immutable = immutable;
+                _logger = logger;
+                _interval = interval;
+                _timeout = timeout;
+            }
+
+            public void Dispose()
+            {
+            }
+
+            public async Task RunAsync(CancellationToken stopToken)
+            {
+                await Task.Yield();
+                while (!stopToken.IsCancellationRequested)
+                {
+                    foreach (var immutableShard in _immutable)
+                    {
+                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stopToken);
+                        cts.CancelAfter(_timeout);
+                        var priority = long.MaxValue;
+                        try
+                        {
+                            var isNotReady = !await immutableShard.Value.IsReadyAsync(cts.Token).ConfigureAwait(false);
+                            var isStopped = await immutableShard.Value.IsStoppedAsync(cts.Token).ConfigureAwait(false);
+
+                            priority = 0;
+                            priority += isNotReady ? 1 : 0;
+                            priority += isStopped ? 2 : 0;
+                        }
+                        catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
+                        {
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to update shard {shard_id} priority", immutableShard.Key);
+                        }
+
+                        if (_unreserved.TryUpdatePriority(immutableShard.Key, priority))
+                        {
+                            _logger.LogInformation("Updated shard {shard_id} priority to {priority}",
+                                immutableShard.Key, priority);
+                        }
+                    }
+
+                    try
+                    {
+                        await Task.Delay(_interval, stopToken).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        return;
+                    }
+                }
+            }
+
+            private readonly IDictionary<string, IImmutableShard> _immutable;
+            private readonly ILogger _logger;
+            private readonly IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> _unreserved;
+            private readonly TimeSpan _interval;
+            private readonly TimeSpan _timeout;
+        }
     }
 }

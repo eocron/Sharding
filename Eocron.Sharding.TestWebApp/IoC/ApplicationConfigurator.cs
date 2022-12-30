@@ -40,8 +40,11 @@ namespace Eocron.Sharding.TestWebApp.IoC
                     .CreateFactory());
             services.AddSingleton(x =>
                 new ConstantShardPool<string, string, string>(
+                    x.GetRequiredService<ILoggerFactory>().CreateLogger<ConstantShardPool<string, string, string>>(),
                     x.GetRequiredService<IShardFactory<string, string, string>>(),
-                    3));
+                    3,
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(5)));
             services.AddSingleton<IShardPool<string, string, string>>(x => x.GetRequiredService<ConstantShardPool<string, string, string>>());
             services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ConstantShardPool<string, string, string>>()));
             services.AddSingleton<IShardProvider<string, string, string>>(x => x.GetRequiredService<IShardPool<string, string, string>>());

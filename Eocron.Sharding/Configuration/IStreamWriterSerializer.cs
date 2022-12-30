@@ -7,6 +7,6 @@ namespace Eocron.Sharding.Configuration
 {
     public interface IStreamWriterSerializer<in T>
     {
-        Task SerializeTo(StreamWriter writer, IEnumerable<T> item, CancellationToken ct);
+        Task SerializeToAsync(StreamWriter writer, IEnumerable<T> item, CancellationToken ct);
     }
 }
