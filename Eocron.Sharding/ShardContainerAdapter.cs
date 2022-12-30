@@ -41,11 +41,11 @@ namespace Eocron.Sharding
         public ChannelReader<ShardMessage<TOutput>> Outputs =>
             _container.GetRequiredService<IShardOutputProvider<TOutput, TError>>().Outputs;
 
-        public string Id => _container.GetRequiredService<IShard>().Id;
+        public string Id => _container.GetRequiredService<IImmutableShardProcess>().Id;
         private readonly ServiceProvider _container;
         public async Task<bool> IsStoppedAsync(CancellationToken ct)
         {
-            return await _container.GetRequiredService<IShardLifetimeManager>().IsStoppedAsync(ct).ConfigureAwait(false);
+            return await _container.GetRequiredService<IShardLifetimeProvider>().IsStoppedAsync(ct).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken ct)

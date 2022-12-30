@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Jobs
 {
-    public sealed class ShardLifetimeJob : IJob, IShardLifetimeManager
+    public sealed class ShardLifetimeJob : IJob, IShardLifetimeManager, IShardLifetimeProvider
     {
         private readonly IJob _inner;
         private readonly ILogger _logger;

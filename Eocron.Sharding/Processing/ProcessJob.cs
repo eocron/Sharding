@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Processing
 {
-    public sealed class ProcessJob<TInput, TOutput, TError> : IProcessJob<TInput, TOutput, TError>
+    public sealed class ProcessJob<TInput, TOutput, TError> : IShardProcess<TInput, TOutput, TError>
     {
         public ProcessJob(
             ProcessShardOptions options,

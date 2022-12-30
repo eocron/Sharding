@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,33 +10,41 @@ namespace Eocron.Sharding.Pools
 {
     public sealed class ConstantShardPool<TInput, TOutput, TError> : IShardPool<TInput, TOutput, TError>, IJob
     {
-        private readonly IShardFactory<TInput, TOutput, TError> _factory;
-        private readonly int _size;
-        private readonly Dictionary<string, IShard<TInput, TOutput, TError>> _idToShardIndex = new(StringComparer.InvariantCultureIgnoreCase);
-
         public ConstantShardPool(IShardFactory<TInput, TOutput, TError> factory, int size)
         {
             if (size < 1)
                 throw new ArgumentOutOfRangeException(nameof(size));
-            _factory = factory;
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _size = size;
         }
 
-        public IEnumerable<IShard<TInput, TOutput, TError>> GetAllShards()
+        public void Dispose()
+        {
+        }
+
+        public bool TryReserve(string id, out IShard<TInput, TOutput, TError> shard)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentNullException(nameof(id));
+            return _idToShardIndex.TryRemove(id, out shard);
+        }
+
+        public void Return(IShard<TInput, TOutput, TError> shard)
+        {
+            _idToShardIndex.TryAdd(shard.Id, shard);
+        }
+
+        public IEnumerable<IImmutableShard> GetAllShards()
         {
             return _idToShardIndex.Values;
         }
 
-        public IShard<TInput, TOutput, TError> FindShardById(string id)
+        public IImmutableShard GetShard(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentNullException(nameof(id));
             _idToShardIndex.TryGetValue(id, out var shard);
             return shard;
-        }
-        
-        public void Dispose()
-        {
         }
 
         public async Task RunAsync(CancellationToken stoppingToken)
@@ -48,7 +57,7 @@ namespace Eocron.Sharding.Pools
                     {
                         var shard = _factory.CreateNewShard(Guid.NewGuid().ToString());
                         shards.Push(shard);
-                        _idToShardIndex.Add(shard.Id, shard);
+                        _idToShardIndex.TryAdd(shard.Id, shard);
                         return shard;
                     })
                     .Select(x => Task.Run(() => x.RunAsync(stoppingToken), stoppingToken))
@@ -57,12 +66,15 @@ namespace Eocron.Sharding.Pools
             }
             finally
             {
-                foreach (var shard in shards)
-                {
-                    shard.Dispose();
-                }
+                foreach (var shard in shards) shard.Dispose();
                 _idToShardIndex.Clear();
             }
         }
+
+        private readonly ConcurrentDictionary<string, IShard<TInput, TOutput, TError>> _idToShardIndex =
+            new(StringComparer.InvariantCultureIgnoreCase);
+
+        private readonly int _size;
+        private readonly IShardFactory<TInput, TOutput, TError> _factory;
     }
 }

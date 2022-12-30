@@ -25,21 +25,9 @@ namespace Eocron.Sharding.AppMetrics
         {
             return container
                 .Replace<IShardInputManager<TInput>>((x, prev) =>
-                    new MonitoredShardInputManager<TInput>(prev, x.GetRequiredService<IMetrics>(),
-                        Merge(
-                            options.Tags,
-                            new[]
-                            {
-                                new KeyValuePair<string, string>("shard_id", x.GetRequiredService<IShard>().Id)
-                            })))
+                    new MonitoredShardInputManager<TInput>(prev, x.GetRequiredService<IMetrics>(), GetShardTags(x, options.Tags)))
                 .Replace<IShardOutputProvider<TOutput, TError>>((x, prev) =>
-                    new MonitoredShardOutputProvider<TOutput, TError>(prev, x.GetRequiredService<IMetrics>(),
-                        Merge(
-                            options.Tags,
-                            new[]
-                            {
-                                new KeyValuePair<string, string>("shard_id", x.GetRequiredService<IShard>().Id)
-                            })))
+                    new MonitoredShardOutputProvider<TOutput, TError>(prev, x.GetRequiredService<IMetrics>(), GetShardTags(x, options.Tags)))
                 .Replace<IJob>((x, prev) =>
                     new CompoundJob(
                         prev,
@@ -51,15 +39,21 @@ namespace Eocron.Sharding.AppMetrics
                                 x.GetRequiredService<IMetrics>(),
                                 options.CheckInterval,
                                 options.CheckTimeout,
-                                Merge(
-                                    options.Tags,
-                                    new[]
-                                    {
-                                        new KeyValuePair<string, string>("shard_id", x.GetRequiredService<IShard>().Id)
-                                    })),
+                                GetShardTags(x, options.Tags)),
                             x.GetRequiredService<ILogger>(),
                             options.ErrorRestartInterval,
                             TimeSpan.Zero)));
+        }
+
+        private static IReadOnlyDictionary<string, string> GetShardTags(IServiceProvider provider,
+            IEnumerable<KeyValuePair<string, string>> additionalTags)
+        {
+            return Merge(
+                additionalTags,
+                new[]
+                {
+                    new KeyValuePair<string, string>("shard_id", provider.GetRequiredService<IImmutableShardProcess>().Id)
+                });
         }
 
         private static IReadOnlyDictionary<string, string> Merge(IEnumerable<KeyValuePair<string, string>> a,

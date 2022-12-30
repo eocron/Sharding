@@ -5,8 +5,6 @@ namespace Eocron.Sharding.Processing
 {
     public interface IShardLifetimeManager
     {
-        Task<bool> IsStoppedAsync(CancellationToken ct);
-
         Task StopAsync(CancellationToken ct);
 
         Task StartAsync(CancellationToken ct);

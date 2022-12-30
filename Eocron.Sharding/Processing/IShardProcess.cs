@@ -2,12 +2,10 @@
 
 namespace Eocron.Sharding.Processing
 {
-    public interface IProcessJob<in TInput, TOutput, TError> :
-        IShard,
+    public interface IShardProcess<in TInput, TOutput, TError> :
         IShardOutputProvider<TOutput, TError>,
         IShardInputManager<TInput>,
-        IShardStateProvider,
-        IProcessDiagnosticInfoProvider,
+        IImmutableShardProcess,
         IJob
     {
 

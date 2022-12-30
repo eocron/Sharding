@@ -89,12 +89,12 @@ namespace Eocron.Sharding.Tests
 
             void OnStopped();
         }
-        public class TestProcessJob<TInput, TOutput, TError> : IProcessJob<TInput, TOutput, TError>
+        public class TestProcessJob<TInput, TOutput, TError> : IShardProcess<TInput, TOutput, TError>
         {
-            private readonly IProcessJob<TInput, TOutput, TError> _processJobImplementation;
+            private readonly IShardProcess<TInput, TOutput, TError> _processJobImplementation;
             private readonly ITestProcessJobHandle _handle;
 
-            public TestProcessJob(IProcessJob<TInput, TOutput, TError> processJobImplementation, ITestProcessJobHandle handle)
+            public TestProcessJob(IShardProcess<TInput, TOutput, TError> processJobImplementation, ITestProcessJobHandle handle)
             {
                 _processJobImplementation = processJobImplementation;
                 _handle = handle;
