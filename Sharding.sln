@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32929.385
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.TestWebApp", "Eocron.Sharding.TestWebApp\Eocron.Sharding.TestWebApp.csproj", "{41473EE3-E000-417E-9061-E2D8F762CC4F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.Tests", "Eocron.Sharding.Tests\Eocron.Sharding.Tests.csproj", "{6BFECF34-63F0-4FC5-8FE8-BB379614F81E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.TestApp", "Eocron.Sharding.TestApp\Eocron.Sharding.TestApp.csproj", "{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.ProcessWatcher", "Eocron.Sharding.ProcessWatcher\Eocron.Sharding.ProcessWatcher.csproj", "{BDA5E489-90DB-4C90-95F7-9259BBA60029}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding", "Eocron.Sharding\Eocron.Sharding.csproj", "{A7715303-F567-46C5-AF77-A8939F8E1AFE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41473EE3-E000-417E-9061-E2D8F762CC4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41473EE3-E000-417E-9061-E2D8F762CC4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41473EE3-E000-417E-9061-E2D8F762CC4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41473EE3-E000-417E-9061-E2D8F762CC4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDA5E489-90DB-4C90-95F7-9259BBA60029}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDA5E489-90DB-4C90-95F7-9259BBA60029}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDA5E489-90DB-4C90-95F7-9259BBA60029}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDA5E489-90DB-4C90-95F7-9259BBA60029}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7715303-F567-46C5-AF77-A8939F8E1AFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7715303-F567-46C5-AF77-A8939F8E1AFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7715303-F567-46C5-AF77-A8939F8E1AFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7715303-F567-46C5-AF77-A8939F8E1AFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{41473EE3-E000-417E-9061-E2D8F762CC4F} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
+		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
+		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B8D232A7-ED5E-4B70-82C7-5F88880D0669}
+	EndGlobalSection
+EndGlobal
