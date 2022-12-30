@@ -43,6 +43,14 @@ namespace Eocron.Sharding.Processing
             _outputs.Writer.Complete(CreateShardDisposedException());
             _errors.Writer.Complete(CreateShardDisposedException());
             _publishSemaphore.Dispose();
+            try
+            {
+                _currentProcess?.Dispose();
+            }
+            catch
+            {
+
+            }
             _disposed = true;
         }
 

@@ -1,9 +1,9 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace Eocron.Sharding.Processing
+namespace Eocron.Sharding.Jobs
 {
-    public interface IShardLifetimeManager
+    public interface ILifetimeManager
     {
         Task StopAsync(CancellationToken ct);
 

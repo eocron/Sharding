@@ -2,19 +2,18 @@
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Eocron.Sharding.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Jobs
 {
-    public sealed class ShardLifetimeJob : IJob, IShardLifetimeManager, IShardLifetimeProvider
+    public sealed class LifetimeJob : IJob, ILifetimeManager, ILifetimeProvider
     {
         private readonly IJob _inner;
         private readonly ILogger _logger;
         private readonly bool _startOnRun;
         private readonly Channel<CancellationTokenSource> _stopChannel;
         private readonly Channel<object> _startChannel;
-        public ShardLifetimeJob(IJob inner, ILogger logger, bool startOnRun)
+        public LifetimeJob(IJob inner, ILogger logger, bool startOnRun)
         {
             _inner = inner;
             _logger = logger;

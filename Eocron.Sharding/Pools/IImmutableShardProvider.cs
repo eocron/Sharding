@@ -7,5 +7,7 @@ namespace Eocron.Sharding.Pools
         IEnumerable<IImmutableShard> GetAllShards();
 
         IImmutableShard GetShard(string id);
+
+        bool IsExists(string id);
     }
 }

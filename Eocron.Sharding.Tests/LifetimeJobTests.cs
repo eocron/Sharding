@@ -4,11 +4,11 @@ using NUnit.Framework;
 
 namespace Eocron.Sharding.Tests
 {
-    public class ShardLifetimeJobTests
+    public class LifetimeJobTests
     {
         private CancellationTokenSource _cts;
         private Mock<IJob> _jobMock;
-        private ShardLifetimeJob _job;
+        private LifetimeJob _job;
         private Task _task;
 
         [SetUp]
@@ -18,7 +18,7 @@ namespace Eocron.Sharding.Tests
             _jobMock = new Mock<IJob>();
             _jobMock.Setup(x => x.RunAsync(It.IsAny<CancellationToken>())).Returns<CancellationToken>((ct)=>Task.Delay(Timeout.Infinite, ct));
             var logger = new TestLogger();
-            _job = new ShardLifetimeJob(_jobMock.Object, logger, true);
+            _job = new LifetimeJob(_jobMock.Object, logger, true);
             _task = _job.RunAsync(_cts.Token);
             await Task.Delay(1);
         }
@@ -41,7 +41,7 @@ namespace Eocron.Sharding.Tests
             var jobMock = new Mock<IJob>();
             jobMock.Setup(x => x.RunAsync(It.IsAny<CancellationToken>())).Throws(new Exception("TEST"));
             var logger = new TestLogger();
-            var job = new ShardLifetimeJob(jobMock.Object, logger, true);
+            var job = new LifetimeJob(jobMock.Object, logger, true);
             Assert.ThrowsAsync<Exception>(() => job.RunAsync(cts.Token));
             Assert.IsFalse(await _job.IsStoppedAsync(_cts.Token));//check if it is not stopped manually
             Assert.ThrowsAsync<Exception>(() => job.RunAsync(cts.Token));

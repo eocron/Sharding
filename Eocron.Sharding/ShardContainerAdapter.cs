@@ -45,22 +45,22 @@ namespace Eocron.Sharding
         private readonly ServiceProvider _container;
         public async Task<bool> IsStoppedAsync(CancellationToken ct)
         {
-            return await _container.GetRequiredService<IShardLifetimeProvider>().IsStoppedAsync(ct).ConfigureAwait(false);
+            return await _container.GetRequiredService<ILifetimeProvider>().IsStoppedAsync(ct).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken ct)
         {
-            await _container.GetRequiredService<IShardLifetimeManager>().StopAsync(ct).ConfigureAwait(false);
+            await _container.GetRequiredService<ILifetimeManager>().StopAsync(ct).ConfigureAwait(false);
         }
 
         public async Task StartAsync(CancellationToken ct)
         {
-            await _container.GetRequiredService<IShardLifetimeManager>().StartAsync(ct).ConfigureAwait(false);
+            await _container.GetRequiredService<ILifetimeManager>().StartAsync(ct).ConfigureAwait(false);
         }
 
         public async Task RestartAsync(CancellationToken ct)
         {
-            await _container.GetRequiredService<IShardLifetimeManager>().RestartAsync(ct).ConfigureAwait(false);
+            await _container.GetRequiredService<ILifetimeManager>().RestartAsync(ct).ConfigureAwait(false);
         }
     }
 }

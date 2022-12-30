@@ -42,8 +42,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/fetch_errors")]
         public IActionResult FetchErrors([FromRoute(Name = "id")] string shardId, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 var result = FetchLatest(shard.Errors, 100);
@@ -58,8 +60,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/fetch_outputs")]
         public IActionResult FetchOutput([FromRoute(Name = "id")] string shardId, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 var result = FetchLatest(shard.Outputs, 100);
@@ -74,8 +78,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/restart")]
         public async Task<IActionResult> Restart([FromRoute(Name = "id")] string shardId, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 await shard.RestartAsync(ct).ConfigureAwait(false);
@@ -90,8 +96,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/stop")]
         public async Task<IActionResult> Stop([FromRoute(Name = "id")] string shardId, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 await shard.StopAsync(ct).ConfigureAwait(false);
@@ -106,8 +114,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/start")]
         public async Task<IActionResult> Start([FromRoute(Name = "id")] string shardId, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 await shard.StartAsync(ct).ConfigureAwait(false);
@@ -122,8 +132,10 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         [HttpPost("{id}/publish")]
         public async Task<IActionResult> PublishAsync([FromRoute(Name = "id")]string shardId, [FromBody]string[] messages, CancellationToken ct)
         {
-            if (!_pool.TryReserve(shardId, out var shard))
+            if (!_pool.IsExists(shardId))
                 return NotFound();
+            if (!_pool.TryReserve(shardId, out var shard))
+                return Reserved();
             try
             {
                 await shard.PublishAsync(messages, ct).ConfigureAwait(false);
@@ -159,6 +171,11 @@ namespace Eocron.Sharding.TestWebApp.Controllers
                 result.Add(item);
             }
             return result;
+        }
+
+        private IActionResult Reserved()
+        {
+            return BadRequest("reserved");
         }
     }
 }

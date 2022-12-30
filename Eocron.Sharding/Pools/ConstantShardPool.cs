@@ -26,25 +26,32 @@ namespace Eocron.Sharding.Pools
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentNullException(nameof(id));
-            return _idToShardIndex.TryRemove(id, out shard);
+            return _unreserved.TryRemove(id, out shard);
         }
 
         public void Return(IShard<TInput, TOutput, TError> shard)
         {
-            _idToShardIndex.TryAdd(shard.Id, shard);
+            _unreserved.TryAdd(shard.Id, shard);
         }
 
         public IEnumerable<IImmutableShard> GetAllShards()
         {
-            return _idToShardIndex.Values;
+            return _immutable.Values;
         }
 
         public IImmutableShard GetShard(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentNullException(nameof(id));
-            _idToShardIndex.TryGetValue(id, out var shard);
+            _immutable.TryGetValue(id, out var shard);
             return shard;
+        }
+
+        public bool IsExists(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentNullException(nameof(id));
+            return _immutable.ContainsKey(id);
         }
 
         public async Task RunAsync(CancellationToken stoppingToken)
@@ -57,7 +64,8 @@ namespace Eocron.Sharding.Pools
                     {
                         var shard = _factory.CreateNewShard(Guid.NewGuid().ToString());
                         shards.Push(shard);
-                        _idToShardIndex.TryAdd(shard.Id, shard);
+                        _unreserved.TryAdd(shard.Id, shard);
+                        _immutable.TryAdd(shard.Id, shard);
                         return shard;
                     })
                     .Select(x => Task.Run(() => x.RunAsync(stoppingToken), stoppingToken))
@@ -67,11 +75,15 @@ namespace Eocron.Sharding.Pools
             finally
             {
                 foreach (var shard in shards) shard.Dispose();
-                _idToShardIndex.Clear();
+                _unreserved.Clear();
+                _immutable.Clear();
             }
         }
 
-        private readonly ConcurrentDictionary<string, IShard<TInput, TOutput, TError>> _idToShardIndex =
+        private readonly ConcurrentDictionary<string, IShard<TInput, TOutput, TError>> _unreserved =
+            new(StringComparer.InvariantCultureIgnoreCase);
+
+        private readonly ConcurrentDictionary<string, IImmutableShard> _immutable =
             new(StringComparer.InvariantCultureIgnoreCase);
 
         private readonly int _size;

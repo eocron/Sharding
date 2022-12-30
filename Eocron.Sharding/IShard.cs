@@ -7,7 +7,7 @@ namespace Eocron.Sharding
         IImmutableShard,
         IShardInputManager<TInput>,
         IShardOutputProvider<TOutput, TError>,
-        IShardLifetimeManager,
+        ILifetimeManager,
         IJob
     {
     }

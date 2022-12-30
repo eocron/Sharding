@@ -1,10 +1,11 @@
-﻿using Eocron.Sharding.Processing;
+﻿using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Processing;
 
 namespace Eocron.Sharding
 {
     public interface IImmutableShard :
         IShardStateProvider,
-        IShardLifetimeProvider
+        ILifetimeProvider
     {
         string Id { get; }
     }

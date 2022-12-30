@@ -22,10 +22,6 @@ namespace Eocron.Sharding.Tests
                 AssertIsEqual(shard.Outputs.AsAsyncEnumerable(ct), forTime, outputs),
                 AssertIsEqual(shard.Errors.AsAsyncEnumerable(ct), forTime, errors));
         }
-        public static Task AssertIsEmpty<T>(IAsyncEnumerable<ShardMessage<T>> enumerable, TimeSpan forTime)
-        {
-            return AssertIsEqual(enumerable, forTime);
-        }
         public static async Task AssertIsEqual<T>(IAsyncEnumerable<ShardMessage<T>> enumerable, TimeSpan forTime, params T[] expected)
         {
             expected = expected ?? Array.Empty<T>();

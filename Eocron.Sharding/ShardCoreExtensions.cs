@@ -80,9 +80,9 @@ namespace Eocron.Sharding
                     x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
                 .AddSingleton<IJob>(x =>
                     x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
-                .Replace<IJob, ShardLifetimeJob>((x, prev) => new ShardLifetimeJob(prev, x.GetRequiredService<ILogger>(), true))
-                .AddSingleton<IShardLifetimeManager>(x => x.GetRequiredService<ShardLifetimeJob>())
-                .AddSingleton<IShardLifetimeProvider>(x => x.GetRequiredService<ShardLifetimeJob>())
+                .Replace<IJob, LifetimeJob>((x, prev) => new LifetimeJob(prev, x.GetRequiredService<ILogger>(), true))
+                .AddSingleton<ILifetimeManager>(x => x.GetRequiredService<LifetimeJob>())
+                .AddSingleton<ILifetimeProvider>(x => x.GetRequiredService<LifetimeJob>())
                 .Replace<IJob>((x, prev) => new RestartUntilCancelledJob(
                     prev,
                     x.GetRequiredService<ILogger>(),
