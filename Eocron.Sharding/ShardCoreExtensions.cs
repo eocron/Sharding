@@ -76,6 +76,8 @@ namespace Eocron.Sharding
                     x.GetRequiredService<IProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IShardOutputProvider<TOutput, TError>>(x =>
                     x.GetRequiredService<IProcessJob<TInput, TOutput, TError>>())
+                .AddSingleton<IShardStateProvider>(x =>
+                    x.GetRequiredService<IProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IJob>(x =>
                     x.GetRequiredService<IProcessJob<TInput, TOutput, TError>>())
                 .Replace<IJob, ShardLifetimeJob>((x, prev) => new ShardLifetimeJob(prev, x.GetRequiredService<ILogger>(), true))

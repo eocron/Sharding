@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using App.Metrics;
 
-namespace Eocron.Sharding.Monitoring
+namespace Eocron.Sharding.AppMetrics.Wrappings
 {
     public static class MonitoringHelper
     {

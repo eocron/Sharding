@@ -23,6 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Eocron.Sharding.AppMetrics\Eocron.Sharding.AppMetrics.csproj" />
+    <ProjectReference Include="..\Eocron.Sharding.HealthChecks\Eocron.Sharding.HealthChecks.csproj" />
     <ProjectReference Include="..\Eocron.Sharding\Eocron.Sharding.csproj" />
   </ItemGroup>
 

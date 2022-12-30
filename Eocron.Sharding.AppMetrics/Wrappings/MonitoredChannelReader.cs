@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using App.Metrics;
 using App.Metrics.Histogram;
 
-namespace Eocron.Sharding.Monitoring
+namespace Eocron.Sharding.AppMetrics.Wrappings
 {
     public class MonitoredChannelReader<TMessage, TValue> : ChannelReader<TMessage>
         where TMessage : ShardMessage<TValue>

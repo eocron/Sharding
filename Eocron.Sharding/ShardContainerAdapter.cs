@@ -22,7 +22,7 @@ namespace Eocron.Sharding
 
         public async Task<bool> IsReadyAsync(CancellationToken ct)
         {
-            return await _container.GetRequiredService<IShardInputManager<TInput>>().IsReadyAsync(ct).ConfigureAwait(false);
+            return await _container.GetRequiredService<IShardStateProvider>().IsReadyAsync(ct).ConfigureAwait(false);
         }
 
         public async Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct)

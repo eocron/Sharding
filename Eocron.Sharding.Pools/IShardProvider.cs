@@ -1,4 +1,6 @@
-﻿namespace Eocron.Sharding.TestWebApp.Shards
+﻿using System.Collections.Generic;
+
+namespace Eocron.Sharding.Pools
 {
     public interface IShardProvider<in TInput, TOutput, TError>
     {

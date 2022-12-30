@@ -1,5 +1,5 @@
 using System.Threading.Channels;
-using Eocron.Sharding.TestWebApp.Shards;
+using Eocron.Sharding.Pools;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Eocron.Sharding.TestWebApp.Controllers

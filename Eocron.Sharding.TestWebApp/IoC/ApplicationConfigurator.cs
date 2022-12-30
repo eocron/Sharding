@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using App.Metrics;
+using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Configuration;
-using Eocron.Sharding.Monitoring;
+using Eocron.Sharding.Pools;
 using Eocron.Sharding.Processing;
-using Eocron.Sharding.TestWebApp.Shards;
 
 namespace Eocron.Sharding.TestWebApp.IoC
 {
@@ -43,7 +43,7 @@ namespace Eocron.Sharding.TestWebApp.IoC
                     x.GetRequiredService<IShardFactory<string, string, string>>(),
                     3));
             services.AddSingleton<IShardPool<string, string, string>>(x => x.GetRequiredService<ConstantShardPool<string, string, string>>());
-            services.AddSingleton<IHostedService>(x => x.GetRequiredService<ConstantShardPool<string, string, string>>());
+            services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ConstantShardPool<string, string, string>>()));
             services.AddSingleton<IShardProvider<string, string, string>>(x => x.GetRequiredService<IShardPool<string, string, string>>());
         }
     }

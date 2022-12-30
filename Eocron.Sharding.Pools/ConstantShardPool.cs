@@ -1,6 +1,13 @@
-﻿namespace Eocron.Sharding.TestWebApp.Shards
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Eocron.Sharding.Jobs;
+
+namespace Eocron.Sharding.Pools
 {
-    public sealed class ConstantShardPool<TInput, TOutput, TError> : BackgroundService, IShardPool<TInput, TOutput, TError>
+    public sealed class ConstantShardPool<TInput, TOutput, TError> : IShardPool<TInput, TOutput, TError>, IJob
     {
         private readonly IShardFactory<TInput, TOutput, TError> _factory;
         private readonly int _size;
@@ -8,7 +15,7 @@
 
         public ConstantShardPool(IShardFactory<TInput, TOutput, TError> factory, int size)
         {
-            if (size < 0)
+            if (size < 1)
                 throw new ArgumentOutOfRangeException(nameof(size));
             _factory = factory;
             _size = size;
@@ -26,8 +33,12 @@
             _idToShardIndex.TryGetValue(id, out var shard);
             return shard;
         }
+        
+        public void Dispose()
+        {
+        }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public async Task RunAsync(CancellationToken stoppingToken)
         {
             var shards = new Stack<IShard<TInput, TOutput, TError>>();
             try
@@ -40,7 +51,7 @@
                         _idToShardIndex.Add(shard.Id, shard);
                         return shard;
                     })
-                    .Select(x=> Task.Run(()=> x.RunAsync(stoppingToken), stoppingToken))
+                    .Select(x => Task.Run(() => x.RunAsync(stoppingToken), stoppingToken))
                     .ToList();
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }

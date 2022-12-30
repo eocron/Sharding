@@ -4,7 +4,7 @@ using App.Metrics;
 using App.Metrics.Histogram;
 using Eocron.Sharding.Processing;
 
-namespace Eocron.Sharding.Monitoring
+namespace Eocron.Sharding.AppMetrics.Wrappings
 {
     public class MonitoredShardOutputProvider<TOutput, TError> : IShardOutputProvider<TOutput, TError>
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Eocron.Sharding.Monitoring
+namespace Eocron.Sharding.AppMetrics
 {
     public class AppMetricsShardOptions
     {

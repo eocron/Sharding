@@ -4,17 +4,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using App.Metrics;
 using App.Metrics.Gauge;
+using Eocron.Sharding.AppMetrics.Wrappings;
 using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.Logging;
 
-namespace Eocron.Sharding.Monitoring
+namespace Eocron.Sharding.AppMetrics.Jobs
 {
-    public class ShardMonitoringJob<TInput> : IJob
+    public class ShardMonitoringJob : IJob
     {
         public ShardMonitoringJob(
             ILogger logger,
-            IShardInputManager<TInput> inputManager,
+            IShardStateProvider stateProvider,
             IProcessDiagnosticInfoProvider infoProvider,
             IMetrics metrics,
             TimeSpan checkInterval,
@@ -22,7 +23,7 @@ namespace Eocron.Sharding.Monitoring
             IReadOnlyDictionary<string, string> tags)
         {
             _logger = logger;
-            _inputManager = inputManager;
+            _stateProvider = stateProvider;
             _infoProvider = infoProvider;
             _metrics = metrics;
             _checkInterval = checkInterval;
@@ -52,7 +53,7 @@ namespace Eocron.Sharding.Monitoring
                 {
                     await OnCheck(cts.Token);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     _logger.LogError(e, "Failed to check shard status.");
                 }
@@ -89,7 +90,7 @@ namespace Eocron.Sharding.Monitoring
 
         private async Task OnCheck(CancellationToken ct)
         {
-            await _inputManager.IsReadyAsync(ct).ConfigureAwait(false);
+            await _stateProvider.IsReadyAsync(ct).ConfigureAwait(false);
 
             if (!_infoProvider.TryGetProcessDiagnosticInfo(out var info))
                 info = new ProcessDiagnosticInfo();
@@ -125,7 +126,7 @@ namespace Eocron.Sharding.Monitoring
         private readonly IMetrics _metrics;
         private readonly IProcessDiagnosticInfoProvider _infoProvider;
         private readonly ILogger _logger;
-        private readonly IShardInputManager<TInput> _inputManager;
+        private readonly IShardStateProvider _stateProvider;
         private readonly TimeSpan _checkInterval;
         private DateTime? _lastCheckTime;
         private TimeSpan? _lastTotalProcessorTime;

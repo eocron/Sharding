@@ -3,9 +3,8 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using Eocron.Sharding.Processing;
 using App.Metrics;
+using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Configuration;
-using Eocron.Sharding.Monitoring;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 

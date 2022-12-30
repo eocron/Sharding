@@ -6,6 +6,7 @@ namespace Eocron.Sharding.Processing
         IShard,
         IShardOutputProvider<TOutput, TError>,
         IShardInputManager<TInput>,
+        IShardStateProvider,
         IProcessDiagnosticInfoProvider,
         IJob
     {

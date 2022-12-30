@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using App.Metrics;
+using Eocron.Sharding.AppMetrics.Jobs;
+using Eocron.Sharding.AppMetrics.Wrappings;
 using Eocron.Sharding.Jobs;
-using Eocron.Sharding.Monitoring;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Eocron.Sharding
+namespace Eocron.Sharding.AppMetrics
 {
     public static class ShardAppMetricsExtensions
     {
@@ -43,9 +44,9 @@ namespace Eocron.Sharding
                     new CompoundJob(
                         prev,
                         new RestartUntilCancelledJob(
-                            new ShardMonitoringJob<TInput>(
+                            new ShardMonitoringJob(
                                 x.GetRequiredService<ILogger>(),
-                                x.GetRequiredService<IShardInputManager<TInput>>(),
+                                x.GetRequiredService<IShardStateProvider>(),
                                 x.GetRequiredService<IProcessDiagnosticInfoProvider>(),
                                 x.GetRequiredService<IMetrics>(),
                                 options.CheckInterval,

@@ -1,4 +1,6 @@
-﻿var mode = Enum.Parse<TestMode>(args[0], true);
+﻿using Eocron.Sharding.TestApp;
+
+var mode = Enum.Parse<TestMode>(args[0], true);
 switch (mode)
 {
     case TestMode.Stream:
