@@ -16,6 +16,17 @@ namespace Eocron.Sharding.DataStructures
             _sync = new object();
         }
 
+        public int Count
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _inner.Count;
+                }
+            }
+        }
+
         public void Enqueue(TKey key, TPriority priority, TElement element)
         {
             lock (_sync)

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Eocron.Sharding.Processing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
@@ -9,10 +8,10 @@ namespace Eocron.Sharding.HealthChecks
 {
     public sealed class ShardHealthCheck : IHealthCheck
     {
-        private readonly IShardStateProvider _stateProvider;
+        private readonly IImmutableShard _stateProvider;
         private readonly ILogger _logger;
 
-        public ShardHealthCheck(IShardStateProvider stateProvider, ILogger logger)
+        public ShardHealthCheck(IImmutableShard stateProvider, ILogger logger)
         {
             _stateProvider = stateProvider ?? throw new ArgumentNullException(nameof(stateProvider));
             _logger = logger;
@@ -22,7 +21,7 @@ namespace Eocron.Sharding.HealthChecks
         {
             try
             {
-                var result = await _stateProvider.IsReadyAsync(cancellationToken).ConfigureAwait(false);
+                var result = await _stateProvider.IsReadyAsync(cancellationToken).ConfigureAwait(false) && !await _stateProvider.IsStoppedAsync(cancellationToken);
                 if (result)
                 {
                     return HealthCheckResult.Healthy();

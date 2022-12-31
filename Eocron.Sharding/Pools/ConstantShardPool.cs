@@ -65,6 +65,11 @@ namespace Eocron.Sharding.Pools
             return _immutable.ContainsKey(id);
         }
 
+        public bool HasFree()
+        {
+            return _unreserved.Count > 0;
+        }
+
         public void Return(IShard<TInput, TOutput, TError> shard)
         {
             _unreserved.Enqueue(shard.Id, long.MaxValue, shard);
@@ -121,7 +126,8 @@ namespace Eocron.Sharding.Pools
         {
             public RecalculatePrioritiesJob(
                 IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> unreserved,
-                IDictionary<string, IImmutableShard> immutable, ILogger logger,
+                IDictionary<string, IImmutableShard> immutable, 
+                ILogger logger,
                 TimeSpan timeout)
             {
                 _unreserved = unreserved;

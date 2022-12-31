@@ -8,7 +8,7 @@ using Eocron.Sharding.Configuration;
 
 namespace Eocron.Sharding
 {
-    public static class ShardCoreExtensions
+    public static class ShardBuilderExtensions
     {
         public static IServiceCollection AddShardProcessWatcherHostedService(this IServiceCollection services)
         {
@@ -42,10 +42,9 @@ namespace Eocron.Sharding
             this ShardBuilder<TInput, TOutput, TError> builder,
             Func<IShardProcess<TInput, TOutput, TError>, IShardProcess<TInput, TOutput, TError>> wrapProvider)
         {
-            builder.Add((s, shardId) => { s.Replace<IShardProcess<TInput, TOutput, TError>>((_, prev) =>
-                {
-                    return wrapProvider(prev);
-                });
+            builder.Add((s, shardId) =>
+            {
+                s.Replace<IShardProcess<TInput, TOutput, TError>>((_, prev) => wrapProvider(prev));
             });
             return builder;
         }

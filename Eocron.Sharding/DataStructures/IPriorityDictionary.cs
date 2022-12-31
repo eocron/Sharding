@@ -4,6 +4,7 @@ namespace Eocron.Sharding.DataStructures
 {
     public interface IPriorityDictionary<TKey, in TPriority, TElement>: IEnumerable<KeyValuePair<TKey, TElement>>
     {
+        int Count { get; }
         void Enqueue(TKey key, TPriority priority, TElement element);
 
         /// <summary>
