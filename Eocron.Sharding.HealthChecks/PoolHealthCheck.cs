@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Eocron.Sharding.Processing;
+using Eocron.Sharding.Pools;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
@@ -11,20 +10,26 @@ namespace Eocron.Sharding.HealthChecks
 {
     public sealed class PoolHealthCheck : IHealthCheck
     {
-        private readonly Func<IEnumerable<IShardStateProvider>> _provider;
+        private readonly IImmutableShardProvider _provider;
         private readonly ILogger _logger;
 
-        public PoolHealthCheck(Func<IEnumerable<IShardStateProvider>> provider, ILogger logger)
+        public PoolHealthCheck(IImmutableShardProvider provider, ILogger logger)
         {
             _provider = provider;
             _logger = logger;
         }
 
-        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = new CancellationToken())
+        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = new CancellationToken())
         {
             try
             {
-                var results = await Task.WhenAll(_provider().Select(x=> x.IsReadyAsync(cancellationToken))).ConfigureAwait(false);
+                var results = await Task.WhenAll(
+                        _provider
+                            .GetAllShards()
+                            .Select(async x =>
+                                await x.IsReadyAsync(ct).ConfigureAwait(false)
+                                && !await x.IsStoppedAsync(ct).ConfigureAwait(false)))
+                    .ConfigureAwait(false);
                 if (results.Any(x=> x))
                 {
                     return HealthCheckResult.Healthy();

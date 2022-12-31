@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using App.Metrics;
+using App.Metrics.Formatters.Prometheus;
 using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Configuration;
 using Eocron.Sharding.Pools;
@@ -15,13 +16,21 @@ namespace Eocron.Sharding.TestWebApp.IoC
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
             services.AddMetrics();
-            services.AddMetricsEndpoints();
+            services.AddMetricsEndpoints(x =>
+            {
+                x.MetricsEndpointOutputFormatter =
+                    new MetricsPrometheusProtobufOutputFormatter(new MetricsPrometheusOptions()
+                        { NewLineFormat = NewLineFormat.Unix });
+                x.MetricsTextEndpointOutputFormatter =
+                    new MetricsPrometheusTextOutputFormatter(new MetricsPrometheusOptions()
+                        { NewLineFormat = NewLineFormat.Unix });
+            });
             services.AddShardProcessWatcherHostedService();
             services.AddSingleton<IStreamReaderDeserializer<string>, NewLineDeserializer>();
             services.AddSingleton<IStreamWriterSerializer<string>, NewLineSerializer>();
             services.AddSingleton(x =>
                 new ShardBuilder<string, string, string>()
-                    .WithTransient(x.GetRequiredService<ILoggerFactory>())
+                    .WithTransient(id=> x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard["+id+"]"))
                     .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
                     .WithSerializers(
                         x.GetRequiredService<IStreamWriterSerializer<string>>(),

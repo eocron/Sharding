@@ -58,14 +58,12 @@ namespace Eocron.Sharding.Tests
 
         public static IShard<string, string, string> CreateTestShard(string mode, ITestProcessJobHandle handle = null)
         {
-            var loggerFactory = new Mock<ILoggerFactory>();
-            loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new TestLogger());
             var watcher = new TestChildProcessWatcher();
             var metrics = new MetricsBuilder().Build();
             var shardFactory =
                 new ShardBuilder<string, string, string>()
-                    .WithTransient<ILoggerFactory>(loggerFactory.Object)
                     .WithTransient<IChildProcessWatcher>(watcher)
+                    .WithTransient<ILogger>(new TestLogger())
                     .WithSerializers(
                         new NewLineSerializer(),
                         new NewLineDeserializer(),

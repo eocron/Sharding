@@ -11,7 +11,7 @@ namespace Eocron.Sharding.DataStructures
         /// </summary>
         /// <param name="key"></param>
         /// <param name="priority"></param>
-        /// <returns>True - if priority updated. False - if key not found or priority equivalent</returns>
+        /// <returns>True - if priority updated; False - if key not found or priority not changed</returns>
         bool TryUpdatePriority(TKey key, TPriority priority);
 
         /// <summary>

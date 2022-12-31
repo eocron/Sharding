@@ -1,4 +1,5 @@
-﻿using Eocron.Sharding.Configuration;
+﻿using System;
+using Eocron.Sharding.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Eocron.Sharding
@@ -36,6 +37,13 @@ namespace Eocron.Sharding
             where TInterface : class
         {
             Add((s, id) => s.AddTransient<TInterface>(sp => implementation));
+            return this;
+        }
+
+        public ShardBuilder<TInput, TOutput, TError> WithTransient<TInterface>(Func<string, TInterface> implementationProvider)
+            where TInterface : class
+        {
+            Add((s, id) => s.AddTransient<TInterface>(sp => implementationProvider(id)));
             return this;
         }
 

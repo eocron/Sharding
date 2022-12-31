@@ -28,12 +28,16 @@ namespace Eocron.Sharding.Pools
                     new PriorityDictionary<string, long, IShard<TInput, TOutput, TError>>(
                         StringComparer.InvariantCultureIgnoreCase));
             _immutable = new ConcurrentDictionary<string, IImmutableShard>(StringComparer.InvariantCultureIgnoreCase);
-            _recalculateJob = new RecalculatePrioritiesJob(
-                _unreserved, 
-                _immutable,
-                logger ?? throw new ArgumentNullException(nameof(logger)), 
-                priorityRecalculationInterval,
-                checkTimeout);
+            _recalculateJob =
+                new RestartUntilCancelledJob(
+                    new RecalculatePrioritiesJob(
+                        _unreserved,
+                        _immutable,
+                        logger,
+                        checkTimeout),
+                    logger,
+                    priorityRecalculationInterval,
+                    priorityRecalculationInterval);
         }
 
         public void Dispose()
@@ -117,14 +121,12 @@ namespace Eocron.Sharding.Pools
         {
             public RecalculatePrioritiesJob(
                 IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> unreserved,
-                IDictionary<string, IImmutableShard> immutable, ILogger logger, 
-                TimeSpan interval,
+                IDictionary<string, IImmutableShard> immutable, ILogger logger,
                 TimeSpan timeout)
             {
                 _unreserved = unreserved;
                 _immutable = immutable;
                 _logger = logger;
-                _interval = interval;
                 _timeout = timeout;
             }
 
@@ -134,46 +136,33 @@ namespace Eocron.Sharding.Pools
 
             public async Task RunAsync(CancellationToken stopToken)
             {
-                await Task.Yield();
-                while (!stopToken.IsCancellationRequested)
+                foreach (var immutableShard in _immutable)
                 {
-                    foreach (var immutableShard in _immutable)
-                    {
-                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stopToken);
-                        cts.CancelAfter(_timeout);
-                        var priority = long.MaxValue;
-                        try
-                        {
-                            var isNotReady = !await immutableShard.Value.IsReadyAsync(cts.Token).ConfigureAwait(false);
-                            var isStopped = await immutableShard.Value.IsStoppedAsync(cts.Token).ConfigureAwait(false);
-
-                            priority = 0;
-                            priority += isNotReady ? 1 : 0;
-                            priority += isStopped ? 2 : 0;
-                        }
-                        catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
-                        {
-                            return;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Failed to update shard {shard_id} priority", immutableShard.Key);
-                        }
-
-                        if (_unreserved.TryUpdatePriority(immutableShard.Key, priority))
-                        {
-                            _logger.LogInformation("Updated shard {shard_id} priority to {priority}",
-                                immutableShard.Key, priority);
-                        }
-                    }
-
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(stopToken);
+                    cts.CancelAfter(_timeout);
+                    var priority = long.MaxValue;
                     try
                     {
-                        await Task.Delay(_interval, stopToken).ConfigureAwait(false);
+                        var isNotReady = !await immutableShard.Value.IsReadyAsync(cts.Token).ConfigureAwait(false);
+                        var isStopped = await immutableShard.Value.IsStoppedAsync(cts.Token).ConfigureAwait(false);
+
+                        priority = 0;
+                        priority += isNotReady ? 1 : 0;
+                        priority += isStopped ? 2 : 0;
                     }
-                    catch
+                    catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
                     {
                         return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to update shard {shard_id} priority", immutableShard.Key);
+                    }
+
+                    if (_unreserved.TryUpdatePriority(immutableShard.Key, priority))
+                    {
+                        _logger.LogInformation("Updated shard {shard_id} priority to {priority}",
+                            immutableShard.Key, priority);
                     }
                 }
             }
@@ -181,7 +170,6 @@ namespace Eocron.Sharding.Pools
             private readonly IDictionary<string, IImmutableShard> _immutable;
             private readonly ILogger _logger;
             private readonly IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> _unreserved;
-            private readonly TimeSpan _interval;
             private readonly TimeSpan _timeout;
         }
     }

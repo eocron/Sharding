@@ -57,7 +57,6 @@ namespace Eocron.Sharding
             ShardBuilder<TInput, TOutput, TError> builder)
         {
             container
-                .AddSingleton<ILogger>(x=> x.GetRequiredService<ILoggerFactory>().CreateLogger<IShard<TInput, TOutput, TError>>())
                 .AddSingleton<IShardProcess<TInput, TOutput, TError>>(x => 
                     new ProcessJob<TInput, TOutput, TError>(
                     options,

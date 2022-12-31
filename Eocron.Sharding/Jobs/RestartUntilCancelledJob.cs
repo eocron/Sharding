@@ -30,9 +30,9 @@ namespace Eocron.Sharding.Jobs
                 var sw = Stopwatch.StartNew();
                 try
                 {
-                    _logger.LogInformation("Job running");
+                    _logger.LogDebug("Job running");
                     await _inner.RunAsync(ct).ConfigureAwait(false);
-                    _logger.LogInformation("Job completed, running for {elapsed}", sw.Elapsed);
+                    _logger.LogDebug("Job completed, running for {elapsed}", sw.Elapsed);
                     await Task.Delay(_onSuccessRestartInterval, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
