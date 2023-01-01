@@ -8,9 +8,6 @@ namespace Eocron.Sharding
     {
         public delegate void ConfiguratorStep<TInput, TOutput, TError>(IServiceCollection shardServices, string shardId);
         public ConfiguratorStep<TInput, TOutput, TError> Configurator { get; set; }
-        public IStreamWriterSerializer<TInput> InputSerializer { get; set; }
-        public IStreamReaderDeserializer<TOutput> OutputDeserializer { get; set; }
-        public IStreamReaderDeserializer<TError> ErrorDeserializer { get; set; }
 
         public void Add(ConfiguratorStep<TInput, TOutput, TError> next)
         {

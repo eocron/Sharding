@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-namespace Eocron.Sharding.Tests
+namespace Eocron.Sharding.Tests.Helpers
 {
     public static class ChannelExtensions
     {

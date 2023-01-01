@@ -1,32 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Pools;
+using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Kafka
 {
     public sealed class BrokerShardProcessorJob<TInput, TOutput, TError> : IJob
     {
-        private readonly IBrokerConsumerFactory _consumerProvider;
+        private readonly IBrokerConsumerFactory<string, TInput> _consumerProvider;
         private readonly IBrokerProducerFactory _outputProducerProvider;
         private readonly IBrokerProducerFactory _errorProducerProvider;
         private readonly IShardManager<TInput, TOutput, TError> _shardManager;
+        private readonly ILogger _logger;
         private readonly TimeSpan _reserveWaitInterval;
         private readonly TimeSpan _reserveTimeout;
 
         public BrokerShardProcessorJob(
-            IBrokerConsumerFactory consumerProvider, 
+            IBrokerConsumerFactory<string, TInput> consumerProvider, 
             IBrokerProducerFactory outputProducerProvider,
             IBrokerProducerFactory errorProducerProvider,
-            IShardManager<TInput, TOutput, TError> shardManager)
+            IShardManager<TInput, TOutput, TError> shardManager,
+            ILogger logger)
         {
             _consumerProvider = consumerProvider;
             _outputProducerProvider = outputProducerProvider;
             _errorProducerProvider = errorProducerProvider;
             _shardManager = shardManager;
+            _logger = logger;
             _reserveWaitInterval = TimeSpan.FromMilliseconds(1);
             _reserveTimeout = TimeSpan.FromSeconds(1);
         }
@@ -38,25 +43,31 @@ namespace Eocron.Sharding.Kafka
 
         public async Task RunAsync(CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             await Task.Yield();
-            using var consumer = _consumerProvider.CreateConsumer<string, TInput>();
+            using var consumer = _consumerProvider.CreateConsumer();
+            using var outputProducer = _outputProducerProvider.CreateProducer<string, TOutput>();
+            using var errorProducer = _errorProducerProvider.CreateProducer<string, TError>();
             await foreach (var batch in consumer.GetConsumerAsyncEnumerable(ct).ConfigureAwait(false))
             {
-                await ProcessAsync(batch, ct).ConfigureAwait(false);
+                int count = 0;
+                await ProcessAsync(batch.Select(x =>
+                {
+                    Interlocked.Increment(ref count);
+                    return x;
+                }), outputProducer, errorProducer, ct).ConfigureAwait(false);
+                _logger.LogInformation("Processed {count} messages.", count);
                 await consumer.CommitAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 
-        private async Task ProcessAsync(IEnumerable<BrokerMessage<string, TInput>> messages, CancellationToken ct)
+        private async Task ProcessAsync(IEnumerable<BrokerMessage<string, TInput>> messages, IBrokerProducer<string, TOutput> outputProducer, IBrokerProducer<string, TError> errorProducer, CancellationToken ct)
         {
             using var reserveTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             reserveTimeoutCts.CancelAfter(_reserveTimeout);
             var shard = await _shardManager.ReserveFreeAsync(ct, reserveWaitInterval: _reserveWaitInterval).ConfigureAwait(false);
             try
             {
-                using var outputProducer = _outputProducerProvider.CreateProducer<string, TOutput>();
-                using var errorProducer = _errorProducerProvider.CreateProducer<string, TError>();
-                
                 await shard.PublishAndHandleUntilReadyAsync(
                         messages.Select(x => x.Message),
                         async (batch, xct) =>
@@ -83,7 +94,6 @@ namespace Eocron.Sharding.Kafka
                         },
                         ct)
                     .ConfigureAwait(false);
-
             }
             finally
             {

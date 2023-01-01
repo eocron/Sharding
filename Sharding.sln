@@ -21,7 +21,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.HealthCheck
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.RestApi", "Eocron.Sharding.RestApi\Eocron.Sharding.RestApi.csproj", "{DCC54E0C-1159-4369-899B-8775A5853365}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eocron.Sharding.Kafka", "Eocron.Sharding.Kafka\Eocron.Sharding.Kafka.csproj", "{DAB6BEB5-8B27-443C-A9A9-0CB936B66F07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Eocron.Sharding.Kafka", "Eocron.Sharding.Kafka\Eocron.Sharding.Kafka.csproj", "{DAB6BEB5-8B27-443C-A9A9-0CB936B66F07}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Eocron.Sharding.TestCommon", "Eocron.Sharding.TestCommon\Eocron.Sharding.TestCommon.csproj", "{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +67,10 @@ Global
 		{DAB6BEB5-8B27-443C-A9A9-0CB936B66F07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DAB6BEB5-8B27-443C-A9A9-0CB936B66F07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DAB6BEB5-8B27-443C-A9A9-0CB936B66F07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -73,6 +79,7 @@ Global
 		{41473EE3-E000-417E-9061-E2D8F762CC4F} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
 		{6BFECF34-63F0-4FC5-8FE8-BB379614F81E} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
 		{7ACE27E1-3E13-4F5F-B1C0-3E76D5A122DB} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
+		{6D3C18B0-C409-4A0F-969C-0A45C1C1B3FF} = {86B2EAE0-AEC4-4D7B-8725-05ED0A4F0EB7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B8D232A7-ED5E-4B70-82C7-5F88880D0669}

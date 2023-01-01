@@ -19,6 +19,7 @@ namespace Eocron.Sharding.Jobs
 
         public async Task RunAsync(CancellationToken ct)
         {
+            await Task.Yield();
             await Task.WhenAll(_inners.Select(x => x.RunAsync(ct))).ConfigureAwait(false);
         }
 

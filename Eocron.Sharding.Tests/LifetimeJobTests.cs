@@ -1,4 +1,5 @@
 ﻿using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Tests.Helpers;
 using Moq;
 using NUnit.Framework;
 

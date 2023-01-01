@@ -1,7 +1,7 @@
 ﻿namespace Eocron.Sharding.Kafka
 {
-    public interface IBrokerConsumerFactory
+    public interface IBrokerConsumerFactory<TKey, TMessage>
     {
-        IBrokerConsumer<TKey, TMessage> CreateConsumer<TKey, TMessage>();
+        IBrokerConsumer<TKey, TMessage> CreateConsumer();
     }
 }

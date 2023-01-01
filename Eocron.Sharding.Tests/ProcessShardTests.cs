@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Eocron.Sharding.Tests.Helpers;
+using Moq;
 using NUnit.Framework;
 
 namespace Eocron.Sharding.Tests
@@ -14,11 +15,10 @@ namespace Eocron.Sharding.Tests
             using var shard = ProcessShardHelper.CreateTestShard("ErrorImmediately", handle.Object);
             var task = shard.RunAsync(cts.Token);
             await shard.PublishAsync(new[] { "a", "b", "c" }, cts.Token);
-            await Task.Delay(1);
+            await handle.VerifyForever(x => x.OnStarting(), Times.AtLeast(3), cts.Token);
             cts.Cancel();
             await task;
-            handle.Verify(x=> x.OnStopped(), Times.Exactly(1));
-            handle.Verify(x=> x.OnStarting(), Times.AtLeast(2));
+            handle.Verify(x => x.OnStopped(), Times.Exactly(1));
         }
 
         [Test]

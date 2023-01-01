@@ -1,4 +1,5 @@
 using Eocron.Sharding.Processing;
+using Eocron.Sharding.Tests.Helpers;
 using NUnit.Framework;
 
 namespace Eocron.Sharding.Tests

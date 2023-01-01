@@ -5,10 +5,10 @@ using Eocron.Sharding.Processing;
 using App.Metrics;
 using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Configuration;
+using Eocron.Sharding.TestCommon;
 using Microsoft.Extensions.Logging;
-using Moq;
 
-namespace Eocron.Sharding.Tests
+namespace Eocron.Sharding.Tests.Helpers
 {
     public static class ProcessShardHelper
     {
@@ -19,14 +19,14 @@ namespace Eocron.Sharding.Tests
             TimeSpan forTime)
         {
             return Task.WhenAll(
-                AssertIsEqual(shard.Outputs.AsAsyncEnumerable(ct), forTime, outputs),
-                AssertIsEqual(shard.Errors.AsAsyncEnumerable(ct), forTime, errors));
+                AssertIsEqual(shard.Outputs.ReadAllAsync(ct), forTime, outputs),
+                AssertIsEqual(shard.Errors.ReadAllAsync(ct), forTime, errors));
         }
         public static async Task AssertIsEqual<T>(IAsyncEnumerable<ShardMessage<T>> enumerable, TimeSpan forTime, params T[] expected)
         {
             expected = expected ?? Array.Empty<T>();
             var result = await ConsumeFor(enumerable, forTime).ConfigureAwait(false);
-            CollectionAssert.AreEqual(expected, result.Select(x=> x.Value));
+            CollectionAssert.AreEqual(expected, result.Select(x => x.Value));
         }
         private static async Task<List<T>> ConsumeFor<T>(IAsyncEnumerable<T> enumerable, TimeSpan timeout)
         {
@@ -56,25 +56,27 @@ namespace Eocron.Sharding.Tests
             };
         }
 
-        public static IShard<string, string, string> CreateTestShard(string mode, ITestProcessJobHandle handle = null)
+        public static IShardFactory<string, string, string> CreateTestShardFactory(string mode, ITestProcessJobHandle handle = null)
         {
             var watcher = new TestChildProcessWatcher();
             var metrics = new MetricsBuilder().Build();
-            var shardFactory =
+            var factory = new NewLineProcessInputOutputHandlerFactory();
+            return
                 new ShardBuilder<string, string, string>()
                     .WithTransient<IChildProcessWatcher>(watcher)
                     .WithTransient<ILogger>(new TestLogger())
-                    .WithSerializers(
-                        new NewLineSerializer(),
-                        new NewLineDeserializer(),
-                        new NewLineDeserializer())
+                    .WithTransient<IProcessInputOutputHandlerFactory<string, string, string>>(factory)
                     .WithProcessJob(
                         CreateTestAppShardOptions(mode))
-                    .WithProcessJobWrap(x=> new TestProcessJob<string, string, string>(x, handle))
+                    .WithProcessJobWrap(x => new TestProcessJob<string, string, string>(x, handle))
                     .WithTransient<IMetrics>(metrics)
                     .WithAppMetrics(new AppMetricsShardOptions())
                     .CreateFactory();
-            return shardFactory.CreateNewShard(nameof(ProcessShardTests) + Guid.NewGuid());
+        }
+
+        public static IShard<string, string, string> CreateTestShard(string mode, ITestProcessJobHandle handle = null)
+        {
+            return CreateTestShardFactory(mode, handle).CreateNewShard(nameof(ProcessShardTests) + Guid.NewGuid());
         }
 
         public interface ITestProcessJobHandle

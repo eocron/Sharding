@@ -18,18 +18,6 @@ namespace Eocron.Sharding
             return services;
         }
 
-        public static ShardBuilder<TInput, TOutput, TError> WithSerializers<TInput, TOutput, TError>(
-            this ShardBuilder<TInput, TOutput, TError> builder,
-            IStreamWriterSerializer<TInput> inputSerializer,
-            IStreamReaderDeserializer<TOutput> outputDeserializer,
-            IStreamReaderDeserializer<TError> errorDeserializer)
-        {
-            builder.InputSerializer = inputSerializer;
-            builder.OutputDeserializer = outputDeserializer;
-            builder.ErrorDeserializer = errorDeserializer;
-            return builder;
-        }
-
         public static ShardBuilder<TInput, TOutput, TError> WithProcessJob<TInput, TOutput, TError>(
             this ShardBuilder<TInput, TOutput, TError> builder,
             ProcessShardOptions options)
@@ -59,11 +47,8 @@ namespace Eocron.Sharding
                 .AddSingleton<IShardProcess<TInput, TOutput, TError>>(x => 
                     new ProcessJob<TInput, TOutput, TError>(
                     options,
-                    builder.OutputDeserializer,
-                    builder.ErrorDeserializer,
-                    builder.InputSerializer,
+                    x.GetRequiredService<IProcessInputOutputHandlerFactory<TInput, TOutput, TError>>(),
                     x.GetRequiredService<ILogger>(),
-                    x.GetService<IProcessStateProvider>(),
                     x.GetRequiredService<IChildProcessWatcher>(),
                     shardId))
                 .AddSingleton<IImmutableShardProcess>(x =>

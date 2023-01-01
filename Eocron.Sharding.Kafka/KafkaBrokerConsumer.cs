@@ -31,6 +31,7 @@ namespace Eocron.Sharding.Kafka
 
         public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable([EnumeratorCancellation] CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             await Task.Yield();
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
             var batch = new List<BrokerMessage<TKey, TMessage>>(_batchSize);

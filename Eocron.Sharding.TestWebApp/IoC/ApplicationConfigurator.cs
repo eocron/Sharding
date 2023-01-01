@@ -5,6 +5,7 @@ using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Configuration;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Processing;
+using Eocron.Sharding.TestCommon;
 
 namespace Eocron.Sharding.TestWebApp.IoC
 {
@@ -26,16 +27,12 @@ namespace Eocron.Sharding.TestWebApp.IoC
                         { NewLineFormat = NewLineFormat.Unix });
             });
             services.AddShardProcessWatcherHostedService();
-            services.AddSingleton<IStreamReaderDeserializer<string>, NewLineDeserializer>();
-            services.AddSingleton<IStreamWriterSerializer<string>, NewLineSerializer>();
+            services.AddSingleton<IProcessInputOutputHandlerFactory<string, string, string>>(x=> new NewLineProcessInputOutputHandlerFactory());
             services.AddSingleton(x =>
                 new ShardBuilder<string, string, string>()
                     .WithTransient(id=> x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard["+id+"]"))
                     .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
-                    .WithSerializers(
-                        x.GetRequiredService<IStreamWriterSerializer<string>>(),
-                        x.GetRequiredService<IStreamReaderDeserializer<string>>(),
-                        x.GetRequiredService<IStreamReaderDeserializer<string>>())
+                    .WithTransient(x.GetRequiredService<IProcessInputOutputHandlerFactory<string, string, string>>())
                     .WithProcessJob(
                         new ProcessShardOptions
                                 {

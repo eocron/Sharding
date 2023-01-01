@@ -33,8 +33,8 @@ namespace Eocron.Sharding
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             var consumers = Task.WhenAll(
-                ConsumeAsync(shard.Outputs, outputHandler, ct),
-                ConsumeAsync(shard.Errors, errorHandler, ct));
+                ConsumeAsync(shard.Outputs, outputHandler, cts.Token),
+                ConsumeAsync(shard.Errors, errorHandler, cts.Token));
             try
             {
                 await WhenReady(shard, cts.Token).ConfigureAwait(false);
