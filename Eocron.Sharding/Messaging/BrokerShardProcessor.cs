@@ -76,7 +76,7 @@ namespace Eocron.Sharding.Messaging
                                     {
                                         Key = Guid.NewGuid().ToString(),
                                         Message = x.Value,
-                                        Timestamp = DateTime.UtcNow
+                                        Timestamp = x.Timestamp
                                     }), xct)
                                 .ConfigureAwait(false);
                         },
@@ -87,7 +87,7 @@ namespace Eocron.Sharding.Messaging
                                     {
                                         Key = Guid.NewGuid().ToString(),
                                         Message = x.Value,
-                                        Timestamp = DateTime.UtcNow
+                                        Timestamp = x.Timestamp
                                     }), xct)
                                 .ConfigureAwait(false);
                         },
