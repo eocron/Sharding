@@ -11,15 +11,18 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
 {
     public sealed class MonitoredBrokerConsumer<TKey, TMessage> : IBrokerConsumer<TKey, TMessage>
     {
-        private readonly IBrokerConsumer<TKey, TMessage> _inner;
-        private readonly IMetrics _metrics;
-        private readonly HistogramOptions _consumerDelayOptions;
-
-        public MonitoredBrokerConsumer(IBrokerConsumer<TKey, TMessage> inner, IMetrics metrics, IReadOnlyDictionary<string, string> tags = null)
+        public MonitoredBrokerConsumer(IBrokerConsumer<TKey, TMessage> inner, IMetrics metrics,
+            IReadOnlyDictionary<string, string> tags = null)
         {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
-            _consumerDelayOptions = MonitoringHelper.CreateBrokerOptions<HistogramOptions>("consumer_delay_ms", tags: tags);
+            _consumerDelayOptions =
+                MonitoringHelper.CreateBrokerOptions<HistogramOptions>("consumer_delay_ms", tags: tags);
+        }
+
+        public async Task CommitAsync(CancellationToken ct)
+        {
+            await _inner.CommitAsync(ct);
         }
 
         public void Dispose()
@@ -27,12 +30,11 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
             _inner.Dispose();
         }
 
-        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable([EnumeratorCancellation] CancellationToken ct)
+        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable(
+            [EnumeratorCancellation] CancellationToken ct)
         {
             await foreach (var batch in _inner.GetConsumerAsyncEnumerable(ct).ConfigureAwait(false))
-            {
                 yield return Wrap(batch);
-            }
         }
 
         private IEnumerable<BrokerMessage<TKey, TMessage>> Wrap(IEnumerable<BrokerMessage<TKey, TMessage>> batch)
@@ -42,10 +44,7 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
             {
                 foreach (var brokerMessage in batch)
                 {
-                    if (minDate == null || brokerMessage.Timestamp < minDate.Value)
-                    {
-                        minDate = brokerMessage.Timestamp;
-                    }
+                    if (minDate == null || brokerMessage.Timestamp < minDate.Value) minDate = brokerMessage.Timestamp;
 
                     yield return brokerMessage;
                 }
@@ -61,9 +60,8 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
             }
         }
 
-        public async Task CommitAsync(CancellationToken ct)
-        {
-            await _inner.CommitAsync(ct);
-        }
+        private readonly HistogramOptions _consumerDelayOptions;
+        private readonly IBrokerConsumer<TKey, TMessage> _inner;
+        private readonly IMetrics _metrics;
     }
 }
