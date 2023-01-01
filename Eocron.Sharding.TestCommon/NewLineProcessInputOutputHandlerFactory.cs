@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Eocron.Sharding.Configuration;
+using Eocron.Sharding.Handlers;
 
 namespace Eocron.Sharding.TestCommon
 {

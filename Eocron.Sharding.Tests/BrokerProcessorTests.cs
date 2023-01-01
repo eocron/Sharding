@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Threading.Channels;
-using Eocron.Sharding.Jobs;
-using Eocron.Sharding.Kafka;
+﻿using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Tests.Helpers;
 using Moq;
@@ -20,7 +18,6 @@ namespace Eocron.Sharding.Tests
             _pool = new ConstantShardPool<string, string, string>(
                 logger, _shardFactory, 1, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
             _consumer = new Mock<IBrokerConsumer<string, string>>();
-            var messages = Channel.CreateUnbounded<BrokerMessage<string, string>>();
             _consumer.Setup(x => x.GetConsumerAsyncEnumerable(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(ct=> AsyncEnumerable.Empty<IEnumerable<BrokerMessage<string, string>>>());
             _consumer.Setup(x => x.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);

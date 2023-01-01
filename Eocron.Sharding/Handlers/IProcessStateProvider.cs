@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Eocron.Sharding.Configuration
+﻿namespace Eocron.Sharding.Handlers
 {
     public interface IProcessStateProvider
     {

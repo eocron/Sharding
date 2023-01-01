@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +7,7 @@ using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Pools;
 using Microsoft.Extensions.Logging;
 
-namespace Eocron.Sharding.Kafka
+namespace Eocron.Sharding.Messaging
 {
     public sealed class BrokerShardProcessorJob<TInput, TOutput, TError> : IJob
     {
@@ -77,7 +76,7 @@ namespace Eocron.Sharding.Kafka
                                     {
                                         Key = Guid.NewGuid().ToString(),
                                         Message = x.Value,
-                                        Timestamp = x.Timestamp
+                                        Timestamp = DateTime.UtcNow
                                     }), xct)
                                 .ConfigureAwait(false);
                         },
@@ -88,7 +87,7 @@ namespace Eocron.Sharding.Kafka
                                     {
                                         Key = Guid.NewGuid().ToString(),
                                         Message = x.Value,
-                                        Timestamp = x.Timestamp
+                                        Timestamp = DateTime.UtcNow
                                     }), xct)
                                 .ConfigureAwait(false);
                         },

@@ -1,5 +1,4 @@
 ﻿using System;
-using Eocron.Sharding.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Eocron.Sharding

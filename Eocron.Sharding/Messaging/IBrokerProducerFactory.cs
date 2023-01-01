@@ -1,4 +1,4 @@
-﻿namespace Eocron.Sharding.Kafka
+﻿namespace Eocron.Sharding.Messaging
 {
     public interface IBrokerProducerFactory
     {

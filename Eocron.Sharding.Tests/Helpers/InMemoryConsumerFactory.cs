@@ -1,4 +1,4 @@
-﻿using Eocron.Sharding.Kafka;
+﻿using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Tests.Helpers
 {

@@ -6,30 +6,42 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Kafka
 {
     public sealed class KafkaBrokerConsumer<TKey, TMessage> : IBrokerConsumer<TKey, TMessage>
     {
-        private readonly int _batchSize;
-        private readonly TimeSpan _batchTimeout;
-        private readonly CancellationTokenSource _cts;
-        private readonly Lazy<IConsumer<TKey, TMessage>> _consumer;
-
-        public KafkaBrokerConsumer(ConsumerBuilder<TKey, TMessage> builder, int batchSize = 1, TimeSpan? batchTimeout = null)
+        public KafkaBrokerConsumer(ConsumerBuilder<TKey, TMessage> builder, int batchSize = 1,
+            TimeSpan? batchTimeout = null)
         {
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
             if (batchSize <= 0)
                 throw new ArgumentOutOfRangeException(nameof(batchSize));
-            
+
             _batchSize = batchSize;
             _batchTimeout = batchTimeout ?? TimeSpan.FromSeconds(1);
             _cts = new CancellationTokenSource();
-            _consumer = new Lazy<IConsumer<TKey, TMessage>>(builder.Build, LazyThreadSafetyMode.ExecutionAndPublication);
+            _consumer = new Lazy<IConsumer<TKey, TMessage>>(builder.Build,
+                LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable([EnumeratorCancellation] CancellationToken ct)
+        public Task CommitAsync(CancellationToken ct)
+        {
+            _consumer.Value.Commit();
+            return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            _cts.Cancel();
+            if (_consumer.IsValueCreated) _consumer.Value.Dispose();
+            _cts.Dispose();
+        }
+
+        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable(
+            [EnumeratorCancellation] CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             await Task.Yield();
@@ -56,7 +68,8 @@ namespace Eocron.Sharding.Kafka
                     {
                         Message = cr.Message.Value,
                         Key = cr.Message.Key,
-                        Headers = cr.Message.Headers.ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.GetValueBytes()))
+                        Headers = cr.Message.Headers.ToDictionary(x => x.Key,
+                            x => Encoding.UTF8.GetString(x.GetValueBytes()))
                     });
                     if (batch.Count == _batchSize || batchDeadline < DateTime.UtcNow)
                     {
@@ -75,20 +88,9 @@ namespace Eocron.Sharding.Kafka
                 yield return batch;
         }
 
-        public Task CommitAsync(CancellationToken ct)
-        {
-            _consumer.Value.Commit();
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            _cts.Cancel();
-            if (_consumer.IsValueCreated)
-            {
-                _consumer.Value.Dispose();
-            }
-            _cts.Dispose();
-        }
+        private readonly CancellationTokenSource _cts;
+        private readonly int _batchSize;
+        private readonly Lazy<IConsumer<TKey, TMessage>> _consumer;
+        private readonly TimeSpan _batchTimeout;
     }
 }

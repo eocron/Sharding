@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Eocron.Sharding.Configuration;
+using Eocron.Sharding.Handlers;
 
 namespace Eocron.Sharding.TestCommon
 {

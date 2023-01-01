@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using Eocron.Sharding.Configuration;
+using Eocron.Sharding.Handlers;
 
 namespace Eocron.Sharding
 {

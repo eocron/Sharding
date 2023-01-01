@@ -2,7 +2,7 @@
 using App.Metrics;
 using App.Metrics.Formatters.Prometheus;
 using Eocron.Sharding.AppMetrics;
-using Eocron.Sharding.Configuration;
+using Eocron.Sharding.Handlers;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Processing;
 using Eocron.Sharding.TestCommon;

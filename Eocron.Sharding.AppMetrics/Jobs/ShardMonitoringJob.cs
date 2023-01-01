@@ -27,15 +27,15 @@ namespace Eocron.Sharding.AppMetrics.Jobs
             _infoProvider = infoProvider;
             _metrics = metrics;
             _checkInterval = checkInterval;
-            _workingSetGauge = MonitoringHelper.CreateShardOptions<GaugeOptions>("process_working_set_bytes",
+            _workingSetGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("working_set_bytes",
                 x => { x.MeasurementUnit = Unit.Bytes; }, tags);
-            _privateMemoryGauge = MonitoringHelper.CreateShardOptions<GaugeOptions>("process_private_memory_bytes",
+            _privateMemoryGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("private_memory_bytes",
                 x => { x.MeasurementUnit = Unit.Bytes; }, tags);
-            _pagedMemoryGauge = MonitoringHelper.CreateShardOptions<GaugeOptions>("process_paged_memory_bytes",
+            _pagedMemoryGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("paged_memory_bytes",
                 x => { x.MeasurementUnit = Unit.Bytes; }, tags);
-            _cpuPercentageGauge = MonitoringHelper.CreateShardOptions<GaugeOptions>("process_cpu_load_percents",
+            _cpuPercentageGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("cpu_load_percents",
                 x => { x.MeasurementUnit = Unit.Percent; }, tags);
-            _handleCountGauge = MonitoringHelper.CreateShardOptions<GaugeOptions>("process_os_handle_count",
+            _handleCountGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("os_handle_count",
                 x => { x.MeasurementUnit = Unit.Items; }, tags);
             _checkTimeout = checkTimeout;
         }

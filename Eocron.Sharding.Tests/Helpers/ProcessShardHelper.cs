@@ -4,7 +4,7 @@ using System.Threading.Channels;
 using Eocron.Sharding.Processing;
 using App.Metrics;
 using Eocron.Sharding.AppMetrics;
-using Eocron.Sharding.Configuration;
+using Eocron.Sharding.Handlers;
 using Eocron.Sharding.TestCommon;
 using Microsoft.Extensions.Logging;
 

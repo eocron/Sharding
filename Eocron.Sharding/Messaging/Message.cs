@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Eocron.Sharding.Kafka
+namespace Eocron.Sharding.Messaging
 {
     public class BrokerMessage<TKey, TMessage>
     {

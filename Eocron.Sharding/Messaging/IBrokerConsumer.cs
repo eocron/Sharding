@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Eocron.Sharding.Kafka
+namespace Eocron.Sharding.Messaging
 {
     public interface IBrokerConsumer<TKey, TMessage> : IDisposable
     {
