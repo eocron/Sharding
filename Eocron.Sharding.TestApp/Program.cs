@@ -17,7 +17,9 @@ static void StreamMode()
 {
     while (true)
     {
-        var line = Console.ReadLine() ?? string.Empty;
+        var line = Console.ReadLine();
+        if(line == null)
+            return;
 
         if (line.StartsWith("error"))
         {

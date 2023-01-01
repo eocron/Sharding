@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
 
 namespace Eocron.Sharding
@@ -23,9 +24,9 @@ namespace Eocron.Sharding
 
         public static async Task PublishAndHandleUntilReadyAsync<TInput, TOutput, TError>(
             this IShard<TInput, TOutput, TError> shard, 
-            IEnumerable<TInput> messages,
-            Func<List<ShardMessage<TOutput>>, CancellationToken, Task> outputHandler,
-            Func<List<ShardMessage<TError>>, CancellationToken, Task> errorHandler,
+            IEnumerable<BrokerMessage<TInput>> messages,
+            Func<List<BrokerMessage<TOutput>>, CancellationToken, Task> outputHandler,
+            Func<List<BrokerMessage<TError>>, CancellationToken, Task> errorHandler,
             CancellationToken ct)
         {
             ClearOutputAndErrors(shard);
@@ -41,7 +42,7 @@ namespace Eocron.Sharding
             }
             finally
             {
-                cts.Cancel();
+                cts.CancelAfter(1);
             }
             await consumers.ConfigureAwait(false);
         }

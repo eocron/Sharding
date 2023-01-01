@@ -4,11 +4,12 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using App.Metrics;
 using App.Metrics.Histogram;
+using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.AppMetrics.Wrappings
 {
     public class MonitoredChannelReader<TMessage, TValue> : ChannelReader<TMessage>
-        where TMessage : ShardMessage<TValue>
+        where TMessage : BrokerMessage<TValue>
     {
         public MonitoredChannelReader(ChannelReader<TMessage> inner, IMetrics metrics,
             HistogramOptions messageDelayOptions)

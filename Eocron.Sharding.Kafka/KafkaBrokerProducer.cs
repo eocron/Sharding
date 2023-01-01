@@ -8,14 +8,14 @@ using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Kafka
 {
-    public sealed class KafkaBrokerProducer<TKey, TMessage> : IBrokerProducer<TKey, TMessage>
+    public sealed class KafkaBrokerProducer<TKey, TMessage> : IBrokerProducer<TMessage>
     {
-        public KafkaBrokerProducer(ProducerBuilder<TKey, TMessage> builder, string topicName)
+        public KafkaBrokerProducer(ProducerBuilder<string, TMessage> builder, string topicName)
         {
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
             _topicName = topicName ?? throw new ArgumentNullException(nameof(topicName));
-            _producer = new Lazy<IProducer<TKey, TMessage>>(builder.Build);
+            _producer = new Lazy<IProducer<string, TMessage>>(builder.Build);
             _cts = new CancellationTokenSource();
         }
 
@@ -26,7 +26,7 @@ namespace Eocron.Sharding.Kafka
             _cts.Dispose();
         }
 
-        public async Task PublishAsync(IEnumerable<BrokerMessage<TKey, TMessage>> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<BrokerMessage<TMessage>> messages, CancellationToken ct)
         {
             foreach (var brokerMessage in messages)
             {
@@ -38,7 +38,7 @@ namespace Eocron.Sharding.Kafka
                     .Value
                     .ProduceAsync(
                         _topicName,
-                        new Message<TKey, TMessage>
+                        new Message<string, TMessage>
                         {
                             Key = brokerMessage.Key,
                             Value = brokerMessage.Message,
@@ -51,7 +51,7 @@ namespace Eocron.Sharding.Kafka
         }
 
         private readonly CancellationTokenSource _cts;
-        private readonly Lazy<IProducer<TKey, TMessage>> _producer;
+        private readonly Lazy<IProducer<string, TMessage>> _producer;
         private readonly string _topicName;
     }
 }

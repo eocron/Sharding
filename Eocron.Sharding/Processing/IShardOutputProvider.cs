@@ -1,4 +1,5 @@
 ﻿using System.Threading.Channels;
+using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Processing
 {
@@ -7,11 +8,11 @@ namespace Eocron.Sharding.Processing
         /// <summary>
         ///     Errors coming from shard
         /// </summary>
-        ChannelReader<ShardMessage<TError>> Errors { get; }
+        ChannelReader<BrokerMessage<TError>> Errors { get; }
 
         /// <summary>
         ///     Outputs coming from shard
         /// </summary>
-        ChannelReader<ShardMessage<TOutput>> Outputs { get; }
+        ChannelReader<BrokerMessage<TOutput>> Outputs { get; }
     }
 }

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Messaging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -26,8 +27,8 @@ namespace Eocron.Sharding.RestApi.Pools
             _httpClientName = httpClientName ?? throw new ArgumentNullException(nameof(httpClientName));
             Id = shardId ?? throw new ArgumentNullException(nameof(shardId));
             _settings = settings;
-            _outputs = Channel.CreateUnbounded<ShardMessage<TOutput>>();
-            _errors = Channel.CreateUnbounded<ShardMessage<TError>>();
+            _outputs = Channel.CreateUnbounded<BrokerMessage<TOutput>>();
+            _errors = Channel.CreateUnbounded<BrokerMessage<TError>>();
 
             if (enableConsumer)
             {
@@ -59,7 +60,7 @@ namespace Eocron.Sharding.RestApi.Pools
             return await GetAsync<bool>($"api/v1/shards/{Id}/is_stopped", ct).ConfigureAwait(false);
         }
 
-        public async Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<BrokerMessage<TInput>> messages, CancellationToken ct)
         {
             await PushAsync($"api/v1/shards/{Id}/publish", messages, ct).ConfigureAwait(false);
         }
@@ -116,14 +117,14 @@ namespace Eocron.Sharding.RestApi.Pools
             response.EnsureSuccessStatusCode();
         }
 
-        public ChannelReader<ShardMessage<TError>> Errors => _errors.Reader;
+        public ChannelReader<BrokerMessage<TError>> Errors => _errors.Reader;
 
-        public ChannelReader<ShardMessage<TOutput>> Outputs => _outputs.Reader;
+        public ChannelReader<BrokerMessage<TOutput>> Outputs => _outputs.Reader;
 
         public string Id { get; }
 
-        private readonly Channel<ShardMessage<TError>> _errors;
-        private readonly Channel<ShardMessage<TOutput>> _outputs;
+        private readonly Channel<BrokerMessage<TError>> _errors;
+        private readonly Channel<BrokerMessage<TOutput>> _outputs;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJob _consumer;
         private readonly JsonSerializerSettings _settings;
@@ -136,8 +137,8 @@ namespace Eocron.Sharding.RestApi.Pools
                 string httpClientName,
                 string shardId,
                 JsonSerializerSettings settings,
-                Channel<ShardMessage<TOutput>> outputChannel,
-                Channel<ShardMessage<TError>> errorChannel)
+                Channel<BrokerMessage<TOutput>> outputChannel,
+                Channel<BrokerMessage<TError>> errorChannel)
             {
                 _httpClientFactory = httpClientFactory;
                 _httpClientName = httpClientName;
@@ -173,8 +174,8 @@ namespace Eocron.Sharding.RestApi.Pools
                 return JsonConvert.DeserializeObject<TResponse>(content, _settings);
             }
 
-            private readonly Channel<ShardMessage<TError>> _errorChannel;
-            private readonly Channel<ShardMessage<TOutput>> _outputChannel;
+            private readonly Channel<BrokerMessage<TError>> _errorChannel;
+            private readonly Channel<BrokerMessage<TOutput>> _outputChannel;
             private readonly IHttpClientFactory _httpClientFactory;
             private readonly JsonSerializerSettings _settings;
             private readonly string _httpClientName;

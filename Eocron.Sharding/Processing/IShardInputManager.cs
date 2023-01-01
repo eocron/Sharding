@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Processing
 {
-    public interface IShardInputManager<in TInput>
+    public interface IShardInputManager<TInput>
     {
         /// <summary>
         ///     Publish messages to the shard
@@ -12,6 +13,6 @@ namespace Eocron.Sharding.Processing
         /// <param name="messages"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct);
+        Task PublishAsync(IEnumerable<BrokerMessage<TInput>> messages, CancellationToken ct);
     }
 }

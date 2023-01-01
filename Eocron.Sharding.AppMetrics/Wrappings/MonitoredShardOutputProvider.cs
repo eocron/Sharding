@@ -2,6 +2,7 @@
 using System.Threading.Channels;
 using App.Metrics;
 using App.Metrics.Histogram;
+using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Processing;
 
 namespace Eocron.Sharding.AppMetrics.Wrappings
@@ -19,13 +20,13 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
                 MonitoringHelper.CreateShardOptions<HistogramOptions>("error_read_delay_ms", tags: tags);
         }
 
-        public ChannelReader<ShardMessage<TError>> Errors => new MonitoredChannelReader<ShardMessage<TError>, TError>(
+        public ChannelReader<BrokerMessage<TError>> Errors => new MonitoredChannelReader<BrokerMessage<TError>, TError>(
             _inner.Errors,
             _metrics,
             _errorDelayHistogramOptions);
 
-        public ChannelReader<ShardMessage<TOutput>> Outputs =>
-            new MonitoredChannelReader<ShardMessage<TOutput>, TOutput>(
+        public ChannelReader<BrokerMessage<TOutput>> Outputs =>
+            new MonitoredChannelReader<BrokerMessage<TOutput>, TOutput>(
                 _inner.Outputs,
                 _metrics,
                 _outputDelayHistogramOptions);

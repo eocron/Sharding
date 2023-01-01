@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
 using Microsoft.AspNetCore.Mvc;
 
@@ -130,7 +131,7 @@ namespace Eocron.Sharding.TestWebApp.Controllers
         }
 
         [HttpPost("{id}/publish")]
-        public async Task<IActionResult> PublishAsync([FromRoute(Name = "id")]string shardId, [FromBody]string[] messages, CancellationToken ct)
+        public async Task<IActionResult> PublishAsync([FromRoute(Name = "id")]string shardId, [FromBody]List<BrokerMessage<string>> messages, CancellationToken ct)
         {
             if (!_pool.IsExists(shardId))
                 return NotFound();

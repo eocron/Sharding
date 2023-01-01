@@ -47,7 +47,7 @@ namespace Eocron.Sharding
         {
             var services = new ServiceCollection();
             Configurator?.Invoke(services, shardId);
-            return new ShardContainerAdapter<TInput, TOutput, TError>(services.BuildServiceProvider());
+            return new ShardContainerAdapter<TInput, TOutput, TError>(services.BuildServiceProvider(), shardId);
         }
 
         public IShardFactory<TInput, TOutput, TError> CreateFactory()

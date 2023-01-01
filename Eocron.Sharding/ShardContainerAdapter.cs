@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,9 +11,10 @@ namespace Eocron.Sharding
 {
     public sealed class ShardContainerAdapter<TInput, TOutput, TError> : IShard<TInput, TOutput, TError>
     {
-        public ShardContainerAdapter(ServiceProvider container)
+        public ShardContainerAdapter(ServiceProvider container, string shardId)
         {
             _container = container;
+            Id = shardId;
         }
 
         public void Dispose()
@@ -25,7 +27,7 @@ namespace Eocron.Sharding
             return await _container.GetRequiredService<IShardStateProvider>().IsReadyAsync(ct).ConfigureAwait(false);
         }
 
-        public async Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<Messaging.BrokerMessage<TInput>> messages, CancellationToken ct)
         {
             await _container.GetRequiredService<IShardInputManager<TInput>>().PublishAsync(messages, ct).ConfigureAwait(false);
         }
@@ -35,13 +37,13 @@ namespace Eocron.Sharding
             await _container.GetRequiredService<IJob>().RunAsync(ct).ConfigureAwait(false);
         }
 
-        public ChannelReader<ShardMessage<TError>> Errors =>
+        public ChannelReader<BrokerMessage<TError>> Errors =>
             _container.GetRequiredService<IShardOutputProvider<TOutput, TError>>().Errors;
 
-        public ChannelReader<ShardMessage<TOutput>> Outputs =>
+        public ChannelReader<BrokerMessage<TOutput>> Outputs =>
             _container.GetRequiredService<IShardOutputProvider<TOutput, TError>>().Outputs;
 
-        public string Id => _container.GetRequiredService<IImmutableShardProcess>().Id;
+        public string Id { get; private set; }
         private readonly ServiceProvider _container;
         public async Task<bool> IsStoppedAsync(CancellationToken ct)
         {

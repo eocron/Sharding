@@ -2,6 +2,6 @@
 {
     public interface IBrokerProducerFactory
     {
-        IBrokerProducer<TKey, TMessage> CreateProducer<TKey, TMessage>();
+        IBrokerProducer<TMessage> CreateProducer<TMessage>();
     }
 }

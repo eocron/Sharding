@@ -5,11 +5,12 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Handlers;
+using Eocron.Sharding.Messaging;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Processing
 {
-    public sealed class ProcessJob<TInput, TOutput, TError> : IShardProcess<TInput, TOutput, TError>
+    public sealed class ProcessJob<TInput, TOutput, TError> : IShardProcessJob<TInput, TOutput, TError>
     {
         public ProcessJob(
             ProcessShardOptions options,
@@ -22,8 +23,8 @@ namespace Eocron.Sharding.Processing
             _handlerFactory = handlerFactory;
             _logger = logger;
             _watcher = watcher;
-            _outputs = Channel.CreateBounded<ShardMessage<TOutput>>(_options.OutputOptions);
-            _errors = Channel.CreateBounded<ShardMessage<TError>>(_options.ErrorOptions);
+            _outputs = Channel.CreateBounded<BrokerMessage<TOutput>>(_options.OutputOptions);
+            _errors = Channel.CreateBounded<BrokerMessage<TError>>(_options.ErrorOptions);
             _publishSemaphore = new SemaphoreSlim(1);
             Id = id ?? $"process_shard_{Guid.NewGuid():N}";
         }
@@ -56,7 +57,7 @@ namespace Eocron.Sharding.Processing
                                    && process.Handler.IsReady());
         }
 
-        public async Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<BrokerMessage<TInput>> messages, CancellationToken ct)
         {
             if (messages == null)
                 throw new ArgumentNullException(nameof(messages));
@@ -76,16 +77,18 @@ namespace Eocron.Sharding.Processing
 
         public async Task RunAsync(CancellationToken stopToken)
         {
+            stopToken.ThrowIfCancellationRequested();
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(stopToken);
             using var process = Process.Start(_options.StartInfo);
+            await using var register = cts.Token.Register(() => OnCancellation(process));
             var processId = ProcessHelper.GetId(process);
             process.EnableRaisingEvents = true;
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
             try
             {
+                cts.Token.ThrowIfCancellationRequested();
                 using var handler = _handlerFactory.CreateHandler(process);
-                await using var register = cts.Token.Register(() => OnCancellation(process));
                 using var logScope = BeginProcessLoggingScope(process);
 
                 if (_watcher != null && processId != null)
@@ -100,7 +103,7 @@ namespace Eocron.Sharding.Processing
                     ProcessOutputs(ct => handler.ReadAllErrorsAsync(ct), _errors, processId, cts.Token)
                 };
                 _current = new ProcessAndHandler(process, handler);
-                await WaitUntilExit(process);
+                await WaitUntilExit(process, cts.Token).ConfigureAwait(false);
 
                 cts.Cancel();
                 await Task.WhenAll(ioTasks).ConfigureAwait(false);
@@ -243,8 +246,8 @@ namespace Eocron.Sharding.Processing
         }
 
         private async Task ProcessOutputs<T>(
-            Func<CancellationToken, IAsyncEnumerable<T>> enumerationProvider,
-            Channel<ShardMessage<T>> output,
+            Func<CancellationToken, IAsyncEnumerable<BrokerMessage<T>>> enumerationProvider,
+            Channel<BrokerMessage<T>> output,
             int? processId,
             CancellationToken ct)
         {
@@ -254,11 +257,7 @@ namespace Eocron.Sharding.Processing
                 {
                     await foreach (var item in enumerationProvider(ct)
                                        .ConfigureAwait(false))
-                        await output.Writer.WriteAsync(new ShardMessage<T>
-                        {
-                            Timestamp = DateTime.UtcNow,
-                            Value = item
-                        }, ct).ConfigureAwait(false);
+                        await output.Writer.WriteAsync(item, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -275,9 +274,9 @@ namespace Eocron.Sharding.Processing
                 }
         }
 
-        private async Task WaitUntilExit(Process process)
+        private async Task WaitUntilExit(Process process, CancellationToken ct)
         {
-            while (ProcessHelper.IsAlive(process)) await Task.Delay(_options.ProcessStatusCheckInterval).ConfigureAwait(false);
+            while (ProcessHelper.IsAlive(process)) await Task.Delay(_options.ProcessStatusCheckInterval, ct).ConfigureAwait(false);
         }
 
         private async Task WaitUntilReady(IProcessStateProvider provider, CancellationToken ct)
@@ -285,13 +284,13 @@ namespace Eocron.Sharding.Processing
             while (!provider.IsReady()) await Task.Delay(_options.ProcessStatusCheckInterval, ct).ConfigureAwait(false);
         }
 
-        public ChannelReader<ShardMessage<TError>> Errors => _errors.Reader;
+        public ChannelReader<BrokerMessage<TError>> Errors => _errors.Reader;
 
-        public ChannelReader<ShardMessage<TOutput>> Outputs => _outputs.Reader;
+        public ChannelReader<BrokerMessage<TOutput>> Outputs => _outputs.Reader;
 
         public string Id { get; }
-        private readonly Channel<ShardMessage<TError>> _errors;
-        private readonly Channel<ShardMessage<TOutput>> _outputs;
+        private readonly Channel<BrokerMessage<TError>> _errors;
+        private readonly Channel<BrokerMessage<TOutput>> _outputs;
         private readonly IChildProcessWatcher _watcher;
         private readonly ILogger _logger;
         private readonly ProcessShardOptions _options;

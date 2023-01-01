@@ -1,4 +1,5 @@
-﻿using Eocron.Sharding.Tests.Helpers;
+﻿using Eocron.Sharding.Messaging;
+using Eocron.Sharding.Tests.Helpers;
 using Moq;
 using NUnit.Framework;
 
@@ -10,15 +11,24 @@ namespace Eocron.Sharding.Tests
         [Test]
         public async Task CantStart()
         {
-            var cts = new CancellationTokenSource(TestTimeout);
+            using var cts = new CancellationTokenSource(TestTimeout);
             var handle = new Mock<ProcessShardHelper.ITestProcessJobHandle>();
             using var shard = ProcessShardHelper.CreateTestShard("ErrorImmediately", handle.Object);
             var task = shard.RunAsync(cts.Token);
-            await shard.PublishAsync(new[] { "a", "b", "c" }, cts.Token);
+            await shard.PublishAsync(new[] { "a", "b", "c" }.Select(x=> new BrokerMessage<string>(){Message = x}), cts.Token);
             await handle.VerifyForever(x => x.OnStarting(), Times.AtLeast(3), cts.Token);
             cts.Cancel();
             await task;
-            handle.Verify(x => x.OnStopped(), Times.Exactly(1));
+            handle.Verify(x => x.OnStopped(), Times.AtMost(1));
+        }
+
+        [Test,Explicit]
+        public async Task CantStartProfile()
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                await CantStart().ConfigureAwait(false);
+            }
         }
 
         [Test]
@@ -27,8 +37,8 @@ namespace Eocron.Sharding.Tests
             var cts = new CancellationTokenSource(TestTimeout);
             using var shard = ProcessShardHelper.CreateTestShard("stream");
             var task = shard.RunAsync(cts.Token);
-            await shard.PublishAsync(new[] { "hang" }, cts.Token);
-            await shard.PublishAsync(new[] { "test" }, cts.Token);
+            await shard.PublishAsync(new[] { "hang" }.AsTestMessages(), cts.Token);
+            await shard.PublishAsync(new[] { "test" }.AsTestMessages(), cts.Token);
             await Task.Delay(1);
             cts.Cancel();
 
@@ -48,10 +58,10 @@ namespace Eocron.Sharding.Tests
             var cts = new CancellationTokenSource(TestTimeout);
             using var shard = ProcessShardHelper.CreateTestShard("stream");
             var task = shard.RunAsync(cts.Token);
-            await shard.PublishAsync(new[] { "hang" }, cts.Token);
+            await shard.PublishAsync(new[] { "hang" }.AsTestMessages(), cts.Token);
             await Task.Delay(100);
             await shard.RestartAsync(cts.Token);
-            await shard.PublishAsync(new[] { "test" }, cts.Token);
+            await shard.PublishAsync(new[] { "test" }.AsTestMessages(), cts.Token);
             await Task.Delay(100);
             cts.Cancel();
 

@@ -10,9 +10,9 @@ using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Kafka
 {
-    public sealed class KafkaBrokerConsumer<TKey, TMessage> : IBrokerConsumer<TKey, TMessage>
+    public sealed class KafkaBrokerConsumer<TMessage> : IBrokerConsumer<TMessage>
     {
-        public KafkaBrokerConsumer(ConsumerBuilder<TKey, TMessage> builder, int batchSize = 1,
+        public KafkaBrokerConsumer(ConsumerBuilder<string, TMessage> builder, int batchSize = 1,
             TimeSpan? batchTimeout = null)
         {
             if (builder == null)
@@ -23,7 +23,7 @@ namespace Eocron.Sharding.Kafka
             _batchSize = batchSize;
             _batchTimeout = batchTimeout ?? TimeSpan.FromSeconds(1);
             _cts = new CancellationTokenSource();
-            _consumer = new Lazy<IConsumer<TKey, TMessage>>(builder.Build,
+            _consumer = new Lazy<IConsumer<string, TMessage>>(builder.Build,
                 LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
@@ -40,13 +40,13 @@ namespace Eocron.Sharding.Kafka
             _cts.Dispose();
         }
 
-        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable(
+        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TMessage>>> GetConsumerAsyncEnumerable(
             [EnumeratorCancellation] CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             await Task.Yield();
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
-            var batch = new List<BrokerMessage<TKey, TMessage>>(_batchSize);
+            var batch = new List<BrokerMessage<TMessage>>(_batchSize);
             var batchDeadline = DateTime.UtcNow + _batchTimeout;
             while (true)
             {
@@ -59,12 +59,12 @@ namespace Eocron.Sharding.Kafka
                     {
                         yield return batch;
                         batchDeadline = DateTime.UtcNow + _batchTimeout;
-                        batch = new List<BrokerMessage<TKey, TMessage>>(_batchSize);
+                        batch = new List<BrokerMessage<TMessage>>(_batchSize);
                     }
                 }
                 else if (!cr.IsPartitionEOF)
                 {
-                    batch.Add(new BrokerMessage<TKey, TMessage>
+                    batch.Add(new BrokerMessage<TMessage>
                     {
                         Message = cr.Message.Value,
                         Key = cr.Message.Key,
@@ -75,7 +75,7 @@ namespace Eocron.Sharding.Kafka
                     {
                         yield return batch;
                         batchDeadline = DateTime.UtcNow + _batchTimeout;
-                        batch = new List<BrokerMessage<TKey, TMessage>>(_batchSize);
+                        batch = new List<BrokerMessage<TMessage>>(_batchSize);
                     }
                 }
                 else
@@ -90,7 +90,7 @@ namespace Eocron.Sharding.Kafka
 
         private readonly CancellationTokenSource _cts;
         private readonly int _batchSize;
-        private readonly Lazy<IConsumer<TKey, TMessage>> _consumer;
+        private readonly Lazy<IConsumer<string, TMessage>> _consumer;
         private readonly TimeSpan _batchTimeout;
     }
 }

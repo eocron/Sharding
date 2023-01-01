@@ -6,14 +6,20 @@ namespace Eocron.Sharding.Tests.Helpers;
 public class TestLogger : ILogger
 {
     private readonly string _name;
+    private readonly LogLevel _minLogLevel;
 
-    public TestLogger(string name = default)
+    public TestLogger(string name = default, LogLevel minLogLevel = LogLevel.Debug)
     {
         _name = name;
+        _minLogLevel = minLogLevel;
     }
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
+        if(!IsEnabled(logLevel))
+            return;
+
         var sb = new StringBuilder();
+        sb.Append($"[{DateTime.UtcNow.ToString("T")}]");
         if (_name != null)
         {
             sb.Append($"[{_name}]");
@@ -23,12 +29,13 @@ public class TestLogger : ILogger
         {
             sb.Append(", error: " + exception.ToString());
         }
-        Console.WriteLine(sb.ToString());
+
+        Task.Run(() => Console.WriteLine(sb.ToString()));
     }
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return true;
+        return _minLogLevel <= logLevel;
     }
 
     public IDisposable BeginScope<TState>(TState state)

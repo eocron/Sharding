@@ -27,7 +27,7 @@ namespace Eocron.Sharding.TestWebApp.IoC
                         { NewLineFormat = NewLineFormat.Unix });
             });
             services.AddShardProcessWatcherHostedService();
-            services.AddSingleton<IProcessInputOutputHandlerFactory<string, string, string>>(x=> new NewLineProcessInputOutputHandlerFactory());
+            services.AddSingleton<IProcessInputOutputHandlerFactory<string, string, string>>(x=> new TestAppHandlerFactory());
             services.AddSingleton(x =>
                 new ShardBuilder<string, string, string>()
                     .WithTransient(id=> x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard["+id+"]"))

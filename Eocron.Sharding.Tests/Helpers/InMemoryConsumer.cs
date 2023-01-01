@@ -2,15 +2,15 @@
 
 namespace Eocron.Sharding.Tests.Helpers
 {
-    public class InMemoryConsumer<TKey, TMessage> : IBrokerConsumer<TKey, TMessage>
+    public class InMemoryConsumer<TMessage> : IBrokerConsumer<TMessage>
     {
         private int _currentPosition;
-        private readonly List<BrokerMessage<TKey, TMessage>> _queue;
+        private readonly List<BrokerMessage<TMessage>> _queue;
         private readonly int _batchSize;
         private readonly Action<int> _onCommit;
         private int _readPosition;
 
-        public InMemoryConsumer(int currentPosition, List<BrokerMessage<TKey, TMessage>> queue, int batchSize, Action<int> onCommit)
+        public InMemoryConsumer(int currentPosition, List<BrokerMessage<TMessage>> queue, int batchSize, Action<int> onCommit)
         {
             _currentPosition = currentPosition;
             _queue = queue;
@@ -23,10 +23,9 @@ namespace Eocron.Sharding.Tests.Helpers
             
         }
 
-        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable(CancellationToken ct)
+        public async IAsyncEnumerable<IEnumerable<BrokerMessage<TMessage>>> GetConsumerAsyncEnumerable(CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
-            await Task.Yield();
             _readPosition = _currentPosition;
             foreach (var i in _queue.Skip(_currentPosition).Chunk(_batchSize))
             {

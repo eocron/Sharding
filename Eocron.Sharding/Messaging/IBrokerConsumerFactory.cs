@@ -1,7 +1,7 @@
 ﻿namespace Eocron.Sharding.Messaging
 {
-    public interface IBrokerConsumerFactory<TKey, TMessage>
+    public interface IBrokerConsumerFactory<TMessage>
     {
-        IBrokerConsumer<TKey, TMessage> CreateConsumer();
+        IBrokerConsumer<TMessage> CreateConsumer();
     }
 }

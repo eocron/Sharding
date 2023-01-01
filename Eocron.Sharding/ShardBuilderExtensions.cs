@@ -28,11 +28,11 @@ namespace Eocron.Sharding
 
         public static ShardBuilder<TInput, TOutput, TError> WithProcessJobWrap<TInput, TOutput, TError>(
             this ShardBuilder<TInput, TOutput, TError> builder,
-            Func<IShardProcess<TInput, TOutput, TError>, IShardProcess<TInput, TOutput, TError>> wrapProvider)
+            Func<IShardProcessJob<TInput, TOutput, TError>, IShardProcessJob<TInput, TOutput, TError>> wrapProvider)
         {
             builder.Add((s, shardId) =>
             {
-                s.Replace<IShardProcess<TInput, TOutput, TError>>((_, prev) => wrapProvider(prev));
+                s.Replace<IShardProcessJob<TInput, TOutput, TError>>((_, prev) => wrapProvider(prev));
             });
             return builder;
         }
@@ -44,7 +44,7 @@ namespace Eocron.Sharding
             ShardBuilder<TInput, TOutput, TError> builder)
         {
             container
-                .AddSingleton<IShardProcess<TInput, TOutput, TError>>(x => 
+                .AddSingleton<IShardProcessJob<TInput, TOutput, TError>>(x => 
                     new ProcessJob<TInput, TOutput, TError>(
                     options,
                     x.GetRequiredService<IProcessInputOutputHandlerFactory<TInput, TOutput, TError>>(),
@@ -52,17 +52,17 @@ namespace Eocron.Sharding
                     x.GetRequiredService<IChildProcessWatcher>(),
                     shardId))
                 .AddSingleton<IImmutableShardProcess>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IProcessDiagnosticInfoProvider>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IShardInputManager<TInput>>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IShardOutputProvider<TOutput, TError>>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IShardStateProvider>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IJob>(x =>
-                    x.GetRequiredService<IShardProcess<TInput, TOutput, TError>>())
+                    x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .Replace<IJob, LifetimeJob>((x, prev) => new LifetimeJob(prev, x.GetRequiredService<ILogger>(), true))
                 .AddSingleton<ILifetimeManager>(x => x.GetRequiredService<LifetimeJob>())
                 .AddSingleton<ILifetimeProvider>(x => x.GetRequiredService<LifetimeJob>())

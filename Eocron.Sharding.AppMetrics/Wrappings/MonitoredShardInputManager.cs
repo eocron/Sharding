@@ -23,7 +23,7 @@ namespace Eocron.Sharding.AppMetrics.Wrappings
                 MonitoringHelper.CreateShardOptions<HistogramOptions>("input_write_delay_ms", tags: tags);
         }
 
-        public async Task PublishAsync(IEnumerable<TInput> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<Messaging.BrokerMessage<TInput>> messages, CancellationToken ct)
         {
             var count = 0;
             var sw = Stopwatch.StartNew();

@@ -37,6 +37,7 @@ namespace Eocron.Sharding.Jobs
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
+                    _logger.LogDebug("Job stopped", sw.Elapsed);
                     break;
                 }
                 catch (Exception e)

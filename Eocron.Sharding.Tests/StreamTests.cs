@@ -21,7 +21,7 @@ namespace Eocron.Sharding.Tests
             var cts = new CancellationTokenSource(TestTimeout);
             foreach (var batch in inputs)
             {
-                await _shard.PublishAsync(batch, cts.Token);
+                await _shard.PublishAsync(batch.Select(x=> new Messaging.BrokerMessage<string>(){Message = x}), cts.Token);
                 await Task.Delay(100);
             }
 
@@ -40,13 +40,14 @@ namespace Eocron.Sharding.Tests
             var toPublish = Enumerable
                 .Range(0, options.ErrorOptions.Capacity * 2)
                 .Select(x => "error " + x)
+                .Select(x=> new Messaging.BrokerMessage<string>(){Message = x})
                 .ToList();
             var toAssert = toPublish.Skip(options.ErrorOptions.Capacity).ToArray();
             var cts = new CancellationTokenSource(TestTimeout);
 
             await _shard.PublishAsync(toPublish, cts.Token);
             await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
-            await ProcessShardHelper.AssertErrorsAndOutputs(_shard, new string[0], toAssert, cts.Token,
+            await ProcessShardHelper.AssertErrorsAndOutputs(_shard, new string[0], toAssert.Select(x=> x.Message).ToArray(), cts.Token,
                 TimeSpan.FromSeconds(1));
         }
 

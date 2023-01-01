@@ -2,6 +2,7 @@
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Tests.Helpers;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 
@@ -17,15 +18,15 @@ namespace Eocron.Sharding.Tests
             _shardFactory = ProcessShardHelper.CreateTestShardFactory("stream");
             _pool = new ConstantShardPool<string, string, string>(
                 logger, _shardFactory, 1, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
-            _consumer = new Mock<IBrokerConsumer<string, string>>();
+            _consumer = new Mock<IBrokerConsumer<string>>();
             _consumer.Setup(x => x.GetConsumerAsyncEnumerable(It.IsAny<CancellationToken>()))
-                .Returns<CancellationToken>(ct=> AsyncEnumerable.Empty<IEnumerable<BrokerMessage<string, string>>>());
+                .Returns<CancellationToken>(ct=> AsyncEnumerable.Empty<IEnumerable<BrokerMessage<string>>>());
             _consumer.Setup(x => x.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-            _producer = new Mock<IBrokerProducer<string, string>>();
-            _cf = new Mock<IBrokerConsumerFactory<string, string>>();
+            _producer = new Mock<IBrokerProducer<string>>();
+            _cf = new Mock<IBrokerConsumerFactory<string>>();
             _cf.Setup(x => x.CreateConsumer()).Returns(_consumer.Object);
             _pf = new Mock<IBrokerProducerFactory>();
-            _pf.Setup(x => x.CreateProducer<string, string>()).Returns(_producer.Object);
+            _pf.Setup(x => x.CreateProducer<string>()).Returns(_producer.Object);
             _job =
                 new CompoundJob(
                     new RestartUntilCancelledJob(
@@ -55,12 +56,12 @@ namespace Eocron.Sharding.Tests
             _job.Dispose();
         }
 
-        public static readonly TimeSpan TestTimeout = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(5);
         private CancellationTokenSource _cts;
         private Task _task;
-        private Mock<IBrokerConsumer<string, string>> _consumer;
-        private Mock<IBrokerProducer<string, string>> _producer;
-        private Mock<IBrokerConsumerFactory<string, string>> _cf;
+        private Mock<IBrokerConsumer<string>> _consumer;
+        private Mock<IBrokerProducer<string>> _producer;
+        private Mock<IBrokerConsumerFactory<string>> _cf;
         private Mock<IBrokerProducerFactory> _pf;
         private IJob _job;
         private IShardFactory<string, string, string> _shardFactory;
@@ -73,21 +74,33 @@ namespace Eocron.Sharding.Tests
             var messages = CreateTestBrokerMessages(101).ToList();
             var factory = new InMemoryConsumerFactory<string, string>(10, messages);
             var consumer = factory.CreateConsumer();
+            var actual = new List<BrokerMessage<string>>();
+            _producer
+                .Setup(x => x.PublishAsync(It.IsAny<IEnumerable<BrokerMessage<string>>>(),
+                    It.IsAny<CancellationToken>())).Callback<IEnumerable<BrokerMessage<string>>, CancellationToken>(
+                    (items, ct) =>
+                    {
+                        lock (actual)
+                        {
+                            actual.AddRange(items);
+                        }
+                    });
             _consumer.Reset();
             _consumer.Setup(x => x.GetConsumerAsyncEnumerable(It.IsAny<CancellationToken>())).Returns<CancellationToken>(ct => consumer.GetConsumerAsyncEnumerable(ct));
             _consumer.Setup(x => x.CommitAsync(It.IsAny<CancellationToken>())).Returns<CancellationToken>(ct => consumer.CommitAsync(ct));
-            await _producer.VerifyForever(
-                x => x.PublishAsync(It.IsAny<IEnumerable<BrokerMessage<string, string>>>(),
-                    It.IsAny<CancellationToken>()), Times.Exactly(11), _cts.Token);
+
+            await TestExtensions.RetryForever(() =>
+            {
+                actual.Select(x => x.Message).Should().BeEquivalentTo(messages.Select(x => x.Message));
+            }, _cts.Token);
         }
 
-
-        private static IEnumerable<BrokerMessage<string, string>> CreateTestBrokerMessages(int count)
+        private static IEnumerable<BrokerMessage<string>> CreateTestBrokerMessages(int count)
         {
-            return Enumerable.Range(0, count).Select(x => new BrokerMessage<string, string>()
+            return Enumerable.Range(0, count).Select(x => new BrokerMessage<string>()
             {
-                Key = Guid.NewGuid().ToString(),
-                Message = "test_message_" + Guid.NewGuid().ToString(),
+                Key = "in_"+(x+1),
+                Message = "test_message_" + (x+1),
                 Timestamp = DateTime.UtcNow
             });
         }

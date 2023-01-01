@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace Eocron.Sharding.Messaging
 {
-    public interface IBrokerConsumer<TKey, TMessage> : IDisposable
+    public interface IBrokerConsumer<TMessage> : IDisposable
     {
-        IAsyncEnumerable<IEnumerable<BrokerMessage<TKey, TMessage>>> GetConsumerAsyncEnumerable(CancellationToken ct);
+        IAsyncEnumerable<IEnumerable<BrokerMessage<TMessage>>> GetConsumerAsyncEnumerable(CancellationToken ct);
 
         Task CommitAsync(CancellationToken ct);
     }

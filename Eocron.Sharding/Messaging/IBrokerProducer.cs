@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace Eocron.Sharding.Messaging
 {
-    public interface IBrokerProducer<TKey, TMessage> : IDisposable
+    public interface IBrokerProducer<TMessage> : IDisposable
     {
-        Task PublishAsync(IEnumerable<BrokerMessage<TKey, TMessage>> messages, CancellationToken ct);
+        Task PublishAsync(IEnumerable<BrokerMessage<TMessage>> messages, CancellationToken ct);
     }
 }
