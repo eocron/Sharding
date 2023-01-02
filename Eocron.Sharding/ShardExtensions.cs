@@ -32,25 +32,20 @@ namespace Eocron.Sharding
             var consumers = Task.WhenAll(
                 ConsumeAsync(shard.Outputs, outputHandler, cts.Token, ct),
                 ConsumeAsync(shard.Errors, errorHandler, cts.Token, ct));
-            try
-            {
-                await WhenReady(shard, cts.Token).ConfigureAwait(false);
-            }
-            finally
-            {
-                cts.CancelAfter(1);
-            }
+
+            await WhenReady(shard, cts.Token).ConfigureAwait(false);
+            cts.Cancel();
             await consumers.ConfigureAwait(false);
         }
 
-        private static async Task ConsumeAsync<T>(ChannelReader<T> channel, Func<List<T>, CancellationToken, Task> handler, CancellationToken ct, CancellationToken stopToken)
+        private static async Task ConsumeAsync<T>(ChannelReader<T> channel, Func<List<T>, CancellationToken, Task> handler, CancellationToken consumeCt, CancellationToken stopToken)
         {
             await Task.Yield();
-            while (!ct.IsCancellationRequested)
+            while (!consumeCt.IsCancellationRequested)
             {
                 try
                 {
-                    await channel.WaitToReadAsync(ct).ConfigureAwait(false);
+                    await channel.WaitToReadAsync(consumeCt).ConfigureAwait(false);
                     var tmp = new List<T>();
                     while (channel.TryRead(out var item))
                     {
@@ -58,7 +53,7 @@ namespace Eocron.Sharding
                     }
                     await handler(tmp, stopToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                catch (OperationCanceledException) when (consumeCt.IsCancellationRequested && !stopToken.IsCancellationRequested)
                 {
                     break;
                 }
