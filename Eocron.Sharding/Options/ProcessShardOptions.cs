@@ -18,16 +18,10 @@ namespace Eocron.Sharding.Options
         /// </summary>
         public TimeSpan? GracefulStopTimeout { get; set; }
 
-        /// <summary>
-        ///     How frequently process state is monitored in shard.
-        ///     Default: 100ms
-        /// </summary>
-        public TimeSpan ProcessStatusCheckInterval { get; set; }
         public RestartPolicyOptions RestartPolicy { get; set; }
 
         public ProcessShardOptions()
         {
-            ProcessStatusCheckInterval = TimeSpan.FromMilliseconds(100);
             ErrorOptions = new(10000)
             {
                 FullMode = BoundedChannelFullMode.DropOldest

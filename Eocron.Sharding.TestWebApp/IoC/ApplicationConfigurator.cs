@@ -22,28 +22,24 @@ namespace Eocron.Sharding.TestWebApp.IoC
             services.AddMetricsEndpoints(x =>
             {
                 x.MetricsEndpointOutputFormatter =
-                    new MetricsPrometheusProtobufOutputFormatter(new MetricsPrometheusOptions()
-                        { NewLineFormat = NewLineFormat.Unix });
+                    new MetricsPrometheusProtobufOutputFormatter(new MetricsPrometheusOptions { NewLineFormat = NewLineFormat.Unix });
                 x.MetricsTextEndpointOutputFormatter =
-                    new MetricsPrometheusTextOutputFormatter(new MetricsPrometheusOptions()
-                        { NewLineFormat = NewLineFormat.Unix });
+                    new MetricsPrometheusTextOutputFormatter(new MetricsPrometheusOptions { NewLineFormat = NewLineFormat.Unix });
             });
             services.AddShardProcessWatcherHostedService();
             services.AddSingleton<IProcessInputOutputHandlerFactory<string, string, string>>(x=> new TestAppHandlerFactory());
-            services.AddSingleton(x =>
-                new ShardBuilder<string, string, string>()
-                    .WithTransient(id=> x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard["+id+"]"))
-                    .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
-                    .WithTransient(x.GetRequiredService<IProcessInputOutputHandlerFactory<string, string, string>>())
+            services.AddShardFactory<string, string, string>((sp, builder) =>
+            {
+                builder
                     .WithProcessJob(
                         new ProcessShardOptions
-                                {
-                                    StartInfo = new ProcessStartInfo("Tools/Eocron.Sharding.TestApp.exe", "stream")
-                                        .ConfigureAsService()
-                                })
-                    .WithTransient(x.GetRequiredService<IMetrics>())
-                    .WithAppMetrics(new AppMetricsShardOptions())
-                    .CreateFactory());
+                        {
+                            StartInfo = new ProcessStartInfo("Tools/Eocron.Sharding.TestApp.exe", "stream")
+                                .ConfigureAsService()
+                        })
+                    .WithTransient(sp.GetRequiredService<IMetrics>())
+                    .WithAppMetrics(new AppMetricsShardOptions());
+            });
             services.AddSingleton(x =>
                 new ConstantShardPool<string, string, string>(
                     x.GetRequiredService<ILoggerFactory>().CreateLogger<ConstantShardPool<string, string, string>>(),

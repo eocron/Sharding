@@ -16,7 +16,6 @@ namespace Eocron.Sharding.Messaging
         private readonly IBrokerProducerFactory _errorProducerProvider;
         private readonly IShardManager<TInput, TOutput, TError> _shardManager;
         private readonly ILogger _logger;
-        private readonly TimeSpan _reserveWaitInterval;
         private readonly TimeSpan _reserveTimeout;
 
         public BrokerShardProcessorJob(
@@ -31,7 +30,6 @@ namespace Eocron.Sharding.Messaging
             _errorProducerProvider = errorProducerProvider;
             _shardManager = shardManager;
             _logger = logger;
-            _reserveWaitInterval = TimeSpan.FromMilliseconds(1);
             _reserveTimeout = TimeSpan.FromSeconds(1);
         }
 
@@ -64,7 +62,7 @@ namespace Eocron.Sharding.Messaging
         {
             using var reserveTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             reserveTimeoutCts.CancelAfter(_reserveTimeout);
-            var shard = await _shardManager.ReserveFreeAsync(ct, reserveWaitInterval: _reserveWaitInterval).ConfigureAwait(false);
+            var shard = await _shardManager.ReserveFreeAsync(ct).ConfigureAwait(false);
             try
             {
                 await shard.PublishAndHandleUntilReadyAsync(

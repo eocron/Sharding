@@ -10,20 +10,16 @@ namespace Eocron.Sharding
 {
     public static class ShardExtensions
     {
-        public static async Task<IShard<TInput, TOutput, TError>> ReserveFreeAsync<TInput, TOutput, TError>(this IShardManager<TInput, TOutput, TError> shardManager, CancellationToken ct, TimeSpan? reserveWaitInterval = null)
+        public static async Task<IShard<TInput, TOutput, TError>> ReserveFreeAsync<TInput, TOutput, TError>(this IShardManager<TInput, TOutput, TError> shardManager, CancellationToken ct)
         {
-            reserveWaitInterval ??= TimeSpan.FromMilliseconds(1);
-            IShard<TInput, TOutput, TError> shard;
-            while (!shardManager.TryReserveFree(out var shardId, out shard))
-            {
-                await Task.Delay(reserveWaitInterval.Value, ct).ConfigureAwait(false);
-            }
-
+            IShard<TInput, TOutput, TError> shard = null;
+            string shardId;
+            await TaskHelper.WhileTrueAsync(() => Task.FromResult(!shardManager.TryReserveFree(out shardId, out shard)), ct).ConfigureAwait(false);
             return shard;
         }
 
         public static async Task PublishAndHandleUntilReadyAsync<TInput, TOutput, TError>(
-            this IShard<TInput, TOutput, TError> shard, 
+            this IShard<TInput, TOutput, TError> shard,
             IEnumerable<BrokerMessage<TInput>> messages,
             Func<List<BrokerMessage<TOutput>>, CancellationToken, Task> outputHandler,
             Func<List<BrokerMessage<TError>>, CancellationToken, Task> errorHandler,
@@ -34,8 +30,8 @@ namespace Eocron.Sharding
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             var consumers = Task.WhenAll(
-                ConsumeAsync(shard.Outputs, outputHandler, cts.Token),
-                ConsumeAsync(shard.Errors, errorHandler, cts.Token));
+                ConsumeAsync(shard.Outputs, outputHandler, cts.Token, ct),
+                ConsumeAsync(shard.Errors, errorHandler, cts.Token, ct));
             try
             {
                 await WhenReady(shard, cts.Token).ConfigureAwait(false);
@@ -47,7 +43,7 @@ namespace Eocron.Sharding
             await consumers.ConfigureAwait(false);
         }
 
-        private static async Task ConsumeAsync<T>(ChannelReader<T> channel, Func<List<T>, CancellationToken, Task> handler, CancellationToken ct)
+        private static async Task ConsumeAsync<T>(ChannelReader<T> channel, Func<List<T>, CancellationToken, Task> handler, CancellationToken ct, CancellationToken stopToken)
         {
             await Task.Yield();
             while (!ct.IsCancellationRequested)
@@ -60,7 +56,7 @@ namespace Eocron.Sharding
                     {
                         tmp.Add(item);
                     }
-                    await handler(tmp, ct).ConfigureAwait(false);
+                    await handler(tmp, stopToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -77,13 +73,11 @@ namespace Eocron.Sharding
 
         public static async Task WhenReady<TInput, TOutput, TError>(
             this IShard<TInput, TOutput, TError> shard,
-            CancellationToken ct,
-            TimeSpan? waitInterval = null)
+            CancellationToken ct)
         {
-            while (!await shard.IsReadyAsync(ct).ConfigureAwait(false))
-            {
-                await Task.Delay(waitInterval ?? TimeSpan.FromMilliseconds(1), ct);
-            }
+            await TaskHelper.WhileTrueAsync(async () => !await shard.IsReadyAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         }
+
+
     }
 }

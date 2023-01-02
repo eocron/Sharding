@@ -1,5 +1,6 @@
 ﻿using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Tests.Helpers;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 
@@ -15,7 +16,7 @@ namespace Eocron.Sharding.Tests
             var handle = new Mock<ProcessShardHelper.ITestProcessJobHandle>();
             using var shard = ProcessShardHelper.CreateTestShard("ErrorImmediately", handle.Object);
             var task = shard.RunAsync(cts.Token);
-            await shard.PublishAsync(new[] { "a", "b", "c" }.Select(x=> new BrokerMessage<string>(){Message = x}), cts.Token);
+            var publish = shard.PublishAsync(new[] { "a", "b", "c" }.Select(x=> new BrokerMessage<string>(){Message = x}), cts.Token);
             await handle.VerifyForever(x => x.OnStarting(), Times.AtLeast(3), cts.Token);
             cts.Cancel();
             await task;
@@ -37,19 +38,16 @@ namespace Eocron.Sharding.Tests
             var cts = new CancellationTokenSource(TestTimeout);
             using var shard = ProcessShardHelper.CreateTestShard("stream");
             var task = shard.RunAsync(cts.Token);
-            await shard.PublishAsync(new[] { "hang" }.AsTestMessages(), cts.Token);
-            await shard.PublishAsync(new[] { "test" }.AsTestMessages(), cts.Token);
-            await Task.Delay(1);
+            var outputs = new List<BrokerMessage<string>>();
+            await shard.PublishAndHandleUntilReadyAsync(new[] { "hang", "test" }.AsTestMessages(),
+                async (x, ct) => outputs.AddRange(x),
+                (x, ct) => Task.CompletedTask,
+                cts.Token);
             cts.Cancel();
 
             await task;
 
-            await ProcessShardHelper.AssertErrorsAndOutputs(
-                shard, 
-                new string[]{"hang"}, 
-                Array.Empty<string>(), 
-                CancellationToken.None,
-                TimeSpan.FromSeconds(1));
+            outputs.Select(x => x.Message).Should().BeEquivalentTo(new[] { "hang" });
         }
 
         [Test]

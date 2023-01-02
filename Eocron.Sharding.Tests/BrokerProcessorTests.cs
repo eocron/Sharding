@@ -58,7 +58,7 @@ namespace Eocron.Sharding.Tests
             _job.Dispose();
         }
 
-        public static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(15);
         private CancellationTokenSource _cts;
         private Task _task;
         private Mock<IBrokerConsumer<string>> _consumer;

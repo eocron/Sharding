@@ -19,6 +19,22 @@ namespace Eocron.Sharding
             return services;
         }
 
+        public static IServiceCollection AddShardFactory<TInput, TOutput, TError>(this IServiceCollection services,
+            Action<IServiceProvider, ShardBuilder<TInput, TOutput, TError>> builderConfigurator)
+        {
+            services.AddSingleton(x =>
+            {
+                var builder = new ShardBuilder<TInput, TOutput, TError>()
+                    .WithTransient(id => x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard[" + id + "]"))
+                    .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
+                    .WithTransient(
+                        x.GetRequiredService<IProcessInputOutputHandlerFactory<TInput, TOutput, TError>>());
+                    builderConfigurator(x, builder);
+                return builder.CreateFactory();
+            });
+            return services;
+        }
+
         public static ShardBuilder<TInput, TOutput, TError> WithProcessJob<TInput, TOutput, TError>(
             this ShardBuilder<TInput, TOutput, TError> builder,
             ProcessShardOptions options)

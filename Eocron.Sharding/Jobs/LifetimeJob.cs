@@ -37,7 +37,7 @@ namespace Eocron.Sharding.Jobs
         public async Task RestartAsync(CancellationToken ct)
         {
             await StopAsync(ct).ConfigureAwait(false);
-            while (!await IsStoppedAsync(ct).ConfigureAwait(false)) await Task.Delay(100, ct).ConfigureAwait(false);
+            await TaskHelper.WhileTrueAsync(async () => !await IsStoppedAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
             await StartAsync(ct).ConfigureAwait(false);
             _logger.LogInformation("Shard restarted");
         }

@@ -197,32 +197,16 @@ namespace Eocron.Sharding.Processing
             return new ObjectDisposedException(Id, "Shard is disposed.");
         }
 
-        private Exception CreateUnableToPublishException(Process process)
-        {
-            var processId = ProcessHelper.GetId(process);
-            var exitCode = ProcessHelper.GetExitCode(process);
-            return new ProcessShardException(
-                $"Unable to publish messages because publish was cancelled waiting for process to start. Last time process {processId} stopped with exit code {exitCode}.",
-                Id, processId, exitCode);
-        }
-
         private async Task<ProcessAndHandler> GetRunningProcessAsync(CancellationToken ct)
         {
-            while (true)
+            ProcessAndHandler process = null;
+            await TaskHelper.WhileTrueAsync(() =>
             {
-                var process = _current;
-                if (process != null && ProcessHelper.IsAlive(process.Process) && process.Handler.IsReady())
-                    return process;
-                try
-                {
-                    await Task.Delay(_options.ProcessStatusCheckInterval, ct);
-                }
-                catch (OperationCanceledException)
-                {
-                    if (process != null) throw CreateUnableToPublishException(process.Process);
-                    throw;
-                }
-            }
+                process = _current;
+                var healthy = process != null && ProcessHelper.IsAlive(process.Process) && process.Handler.IsReady();
+                return Task.FromResult(!healthy);
+            }, ct).ConfigureAwait(false);
+            return process;
         }
 
         private void OnCancellation(Process process)
@@ -277,12 +261,12 @@ namespace Eocron.Sharding.Processing
 
         private async Task WaitUntilExit(Process process, CancellationToken ct)
         {
-            while (ProcessHelper.IsAlive(process)) await Task.Delay(_options.ProcessStatusCheckInterval, ct).ConfigureAwait(false);
+            await TaskHelper.WhileTrueAsync(() => Task.FromResult(ProcessHelper.IsAlive(process)), ct).ConfigureAwait(false);
         }
 
         private async Task WaitUntilReady(IProcessStateProvider provider, CancellationToken ct)
         {
-            while (!provider.IsReady()) await Task.Delay(_options.ProcessStatusCheckInterval, ct).ConfigureAwait(false);
+            await TaskHelper.WhileTrueAsync(() => Task.FromResult(!provider.IsReady()), ct).ConfigureAwait(false);
         }
 
         public ChannelReader<BrokerMessage<TError>> Errors => _errors.Reader;
