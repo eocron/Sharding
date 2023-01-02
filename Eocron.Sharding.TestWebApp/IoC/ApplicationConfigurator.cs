@@ -3,6 +3,8 @@ using App.Metrics;
 using App.Metrics.Formatters.Prometheus;
 using Eocron.Sharding.AppMetrics;
 using Eocron.Sharding.Handlers;
+using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Options;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Processing;
 using Eocron.Sharding.TestCommon;
@@ -37,9 +39,7 @@ namespace Eocron.Sharding.TestWebApp.IoC
                         new ProcessShardOptions
                                 {
                                     StartInfo = new ProcessStartInfo("Tools/Eocron.Sharding.TestApp.exe", "stream")
-                                        .ConfigureAsService(),
-                                    ErrorRestartInterval = TimeSpan.FromSeconds(5),
-                                    SuccessRestartInterval = TimeSpan.FromSeconds(5)
+                                        .ConfigureAsService()
                                 })
                     .WithTransient(x.GetRequiredService<IMetrics>())
                     .WithAppMetrics(new AppMetricsShardOptions())
@@ -48,9 +48,10 @@ namespace Eocron.Sharding.TestWebApp.IoC
                 new ConstantShardPool<string, string, string>(
                     x.GetRequiredService<ILoggerFactory>().CreateLogger<ConstantShardPool<string, string, string>>(),
                     x.GetRequiredService<IShardFactory<string, string, string>>(),
-                    3,
-                    TimeSpan.FromSeconds(5),
-                    TimeSpan.FromSeconds(5)));
+                    new ConstantShardPoolOptions
+                    {
+                        PoolSize = 3
+                    }));
             services.AddSingleton<IShardPool<string, string, string>>(x => x.GetRequiredService<ConstantShardPool<string, string, string>>());
             services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ConstantShardPool<string, string, string>>()));
             services.AddSingleton<IShardProvider<string, string, string>>(x => x.GetRequiredService<IShardPool<string, string, string>>());

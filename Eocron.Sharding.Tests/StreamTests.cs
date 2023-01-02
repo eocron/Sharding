@@ -1,3 +1,4 @@
+using Eocron.Sharding.Options;
 using Eocron.Sharding.Processing;
 using Eocron.Sharding.Tests.Helpers;
 using NUnit.Framework;

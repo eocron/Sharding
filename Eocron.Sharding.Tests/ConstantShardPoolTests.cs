@@ -1,4 +1,5 @@
-﻿using Eocron.Sharding.Pools;
+﻿using Eocron.Sharding.Options;
+using Eocron.Sharding.Pools;
 using Eocron.Sharding.Tests.Helpers;
 using FluentAssertions;
 using Moq;
@@ -30,9 +31,10 @@ namespace Eocron.Sharding.Tests
                 return shard.Object;
             });
             _cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-            _pool = new ConstantShardPool<string, string, string>(logger, _shardFactory.Object, 3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
+            _pool = new ConstantShardPool<string, string, string>(logger, _shardFactory.Object,
+                new ConstantShardPoolOptions { PoolSize = 3 });
             _task = _pool.RunAsync(_cts.Token);
-            await Task.Delay(1);
+            await TestExtensions.RetryForever(() => _pool.GetAllShards().Select(x => x.Id).Count().Should().Be(3), _cts.Token);
         }
 
         [TearDown]

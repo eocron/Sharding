@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Eocron.Sharding.DataStructures;
 using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Options;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Pools
@@ -15,14 +16,10 @@ namespace Eocron.Sharding.Pools
         public ConstantShardPool(
             ILogger logger, 
             IShardFactory<TInput, TOutput, TError> factory, 
-            int size,
-            TimeSpan priorityRecalculationInterval,
-            TimeSpan checkTimeout)
+            ConstantShardPoolOptions options)
         {
-            if (size < 1)
-                throw new ArgumentOutOfRangeException(nameof(size));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
-            _size = size;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _unreserved =
                 new PriorityDictionaryThreadSafetyGuard<string, long, IShard<TInput, TOutput, TError>>(
                     new PriorityDictionary<string, long, IShard<TInput, TOutput, TError>>(
@@ -34,10 +31,9 @@ namespace Eocron.Sharding.Pools
                         _unreserved,
                         _immutable,
                         logger,
-                        checkTimeout),
+                        _options.PriorityCheckTimeout),
                     logger,
-                    priorityRecalculationInterval,
-                    priorityRecalculationInterval);
+                    RestartPolicyOptions.Constant(_options.PriorityCheckInterval));
         }
 
         public void Dispose()
@@ -77,10 +73,11 @@ namespace Eocron.Sharding.Pools
 
         public async Task RunAsync(CancellationToken stoppingToken)
         {
+            await Task.Yield();
             var jobs = new Stack<IJob>();
             try
             {
-                var tasks = Enumerable.Range(0, _size)
+                var tasks = Enumerable.Range(0, _options.PoolSize)
                     .Select(_ =>
                     {
                         var shard = _factory.CreateNewShard(Guid.NewGuid().ToString());
@@ -117,10 +114,9 @@ namespace Eocron.Sharding.Pools
         private readonly ConcurrentDictionary<string, IImmutableShard> _immutable;
         private readonly IJob _recalculateJob;
 
-        private readonly int _size;
-
         private readonly IPriorityDictionary<string, long, IShard<TInput, TOutput, TError>> _unreserved;
         private readonly IShardFactory<TInput, TOutput, TError> _factory;
+        private readonly ConstantShardPoolOptions _options;
 
         private class RecalculatePrioritiesJob : IJob
         {

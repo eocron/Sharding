@@ -8,11 +8,6 @@ namespace Eocron.Sharding.Jobs
 {
     public sealed class LifetimeJob : IJob, ILifetimeManager, ILifetimeProvider
     {
-        private readonly IJob _inner;
-        private readonly ILogger _logger;
-        private readonly bool _startOnRun;
-        private readonly Channel<CancellationTokenSource> _stopChannel;
-        private readonly Channel<object> _startChannel;
         public LifetimeJob(IJob inner, ILogger logger, bool startOnRun)
         {
             _inner = inner;
@@ -29,29 +24,9 @@ namespace Eocron.Sharding.Jobs
             ResetAsync().Wait();
         }
 
-        public Task StopAsync(CancellationToken ct)
+        public void Dispose()
         {
-            _startChannel.Reader.TryRead(out var _);
-            if (_stopChannel.Reader.TryRead(out var cts))
-            {
-                try
-                {
-                    cts.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-                return Task.FromResult(true);
-            }
-            return Task.FromResult(false);
-        }
-
-        public async Task StartAsync(CancellationToken ct)
-        {
-            if (await IsStoppedAsync(ct).ConfigureAwait(false))
-            {
-                await _startChannel.Writer.WriteAsync(new object(), ct).ConfigureAwait(false);
-            }
+            _inner.Dispose();
         }
 
         public Task<bool> IsStoppedAsync(CancellationToken ct)
@@ -62,11 +37,9 @@ namespace Eocron.Sharding.Jobs
         public async Task RestartAsync(CancellationToken ct)
         {
             await StopAsync(ct).ConfigureAwait(false);
-            while (!await IsStoppedAsync(ct).ConfigureAwait(false))
-            {
-                await Task.Delay(100, ct).ConfigureAwait(false);
-            }
+            while (!await IsStoppedAsync(ct).ConfigureAwait(false)) await Task.Delay(100, ct).ConfigureAwait(false);
             await StartAsync(ct).ConfigureAwait(false);
+            _logger.LogInformation("Shard restarted");
         }
 
         public async Task RunAsync(CancellationToken ct)
@@ -85,13 +58,9 @@ namespace Eocron.Sharding.Jobs
                     {
                         await _inner.RunAsync(cts.Token).ConfigureAwait(false);
                         if (!cts.IsCancellationRequested)
-                        {
                             await ResetAsync().ConfigureAwait(false);
-                        }
                         else
-                        {
                             _logger.LogInformation("Shard stopped");
-                        }
                     }
                     catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
                     {
@@ -104,28 +73,50 @@ namespace Eocron.Sharding.Jobs
                             await ResetAsync().ConfigureAwait(false);
                             throw;
                         }
-                        else
-                        {
-                            _logger.LogWarning(e, "Shard stopped with error");
-                        }
+
+                        _logger.LogWarning(e, "Shard stopped with error");
                     }
                 }
             }
         }
 
+        public async Task StartAsync(CancellationToken ct)
+        {
+            if (await IsStoppedAsync(ct).ConfigureAwait(false))
+                await _startChannel.Writer.WriteAsync(new object(), ct).ConfigureAwait(false);
+        }
+
+        public Task StopAsync(CancellationToken ct)
+        {
+            _startChannel.Reader.TryRead(out var _);
+            if (_stopChannel.Reader.TryRead(out var cts))
+            {
+                try
+                {
+                    cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+
+                return Task.FromResult(true);
+            }
+
+            return Task.FromResult(false);
+        }
+
         private async Task ResetAsync()
         {
             if (_startOnRun)
-            {
                 await _startChannel.Writer.WriteAsync(new object(), CancellationToken.None)
                     .ConfigureAwait(false);
-            }
             _stopChannel.Reader.TryRead(out var _);
         }
 
-        public void Dispose()
-        {
-            _inner.Dispose();
-        }
+        private readonly bool _startOnRun;
+        private readonly Channel<CancellationTokenSource> _stopChannel;
+        private readonly Channel<object> _startChannel;
+        private readonly IJob _inner;
+        private readonly ILogger _logger;
     }
 }

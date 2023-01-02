@@ -42,8 +42,8 @@ namespace Eocron.Sharding.Messaging
 
         public async Task RunAsync(CancellationToken ct)
         {
-            ct.ThrowIfCancellationRequested();
             await Task.Yield();
+            ct.ThrowIfCancellationRequested();
             using var consumer = _consumerProvider.CreateConsumer();
             using var outputProducer = _outputProducerProvider.CreateProducer<TOutput>();
             using var errorProducer = _errorProducerProvider.CreateProducer<TError>();

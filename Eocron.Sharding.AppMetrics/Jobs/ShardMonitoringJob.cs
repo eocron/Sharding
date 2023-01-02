@@ -7,26 +7,21 @@ using App.Metrics.Gauge;
 using Eocron.Sharding.AppMetrics.Wrappings;
 using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Processing;
-using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.AppMetrics.Jobs
 {
     public class ShardMonitoringJob : IJob
     {
         public ShardMonitoringJob(
-            ILogger logger,
             IShardStateProvider stateProvider,
             IProcessDiagnosticInfoProvider infoProvider,
             IMetrics metrics,
-            TimeSpan checkInterval,
             TimeSpan checkTimeout,
             IReadOnlyDictionary<string, string> tags)
         {
-            _logger = logger;
             _stateProvider = stateProvider;
             _infoProvider = infoProvider;
             _metrics = metrics;
-            _checkInterval = checkInterval;
             _workingSetGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("working_set_bytes",
                 x => { x.MeasurementUnit = Unit.Bytes; }, tags);
             _privateMemoryGauge = MonitoringHelper.CreateProcessOptions<GaugeOptions>("private_memory_bytes",
@@ -46,27 +41,10 @@ namespace Eocron.Sharding.AppMetrics.Jobs
 
         public async Task RunAsync(CancellationToken ct)
         {
-            while (!ct.IsCancellationRequested)
-            {
-                using var cts = new CancellationTokenSource(_checkTimeout);
-                try
-                {
-                    await OnCheck(cts.Token);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Failed to check shard status.");
-                }
-
-                try
-                {
-                    await Task.Delay(_checkInterval, ct).ConfigureAwait(false);
-                }
-                catch
-                {
-                    break;
-                }
-            }
+            await Task.Yield();
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(_checkTimeout);
+            await OnCheck(cts.Token).ConfigureAwait(false);
         }
 
         private static float GetCpuUsage(
@@ -125,9 +103,7 @@ namespace Eocron.Sharding.AppMetrics.Jobs
         private readonly TimeSpan _checkTimeout;
         private readonly IMetrics _metrics;
         private readonly IProcessDiagnosticInfoProvider _infoProvider;
-        private readonly ILogger _logger;
         private readonly IShardStateProvider _stateProvider;
-        private readonly TimeSpan _checkInterval;
         private DateTime? _lastCheckTime;
         private TimeSpan? _lastTotalProcessorTime;
     }

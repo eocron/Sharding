@@ -1,5 +1,6 @@
 ﻿using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Messaging;
+using Eocron.Sharding.Options;
 using Eocron.Sharding.Pools;
 using Eocron.Sharding.Tests.Helpers;
 using FluentAssertions;
@@ -16,8 +17,7 @@ namespace Eocron.Sharding.Tests
             var logger = new TestLogger();
             _cts = new CancellationTokenSource(TestTimeout);
             _shardFactory = ProcessShardHelper.CreateTestShardFactory("stream");
-            _pool = new ConstantShardPool<string, string, string>(
-                logger, _shardFactory, 1, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            _pool = new ConstantShardPool<string, string, string>(logger, _shardFactory, new ConstantShardPoolOptions() { PoolSize = 1 });
             _consumer = new Mock<IBrokerConsumer<string>>();
             _consumer.Setup(x => x.GetConsumerAsyncEnumerable(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(ct=> AsyncEnumerable.Empty<IEnumerable<BrokerMessage<string>>>());
@@ -32,19 +32,21 @@ namespace Eocron.Sharding.Tests
                     new RestartUntilCancelledJob(
                         _pool,
                         new TestLogger("restart_pool"),
-                        TimeSpan.Zero, 
-                        TimeSpan.Zero),
+                        RestartPolicyOptions.Constant(TimeSpan.Zero)),
                     new RestartUntilCancelledJob(
                         new BrokerShardProcessorJob<string, string, string>(
                             _cf.Object,
                             _pf.Object,
                             _pf.Object,
                             _pool,
-                             new TestLogger("processor")
+                            new TestLogger("processor")
                         ),
                         new TestLogger("restart_processor"),
-                        TimeSpan.Zero,
-                        TimeSpan.FromSeconds(1)));
+                        new RestartPolicyOptions()
+                        {
+                            OnErrorDelay = TimeSpan.Zero,
+                            OnSuccessDelay = TimeSpan.FromSeconds(1)
+                        }));
             _task = _job.RunAsync(_cts.Token);
         }
 

@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Handlers;
 using Eocron.Sharding.Messaging;
+using Eocron.Sharding.Options;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Processing

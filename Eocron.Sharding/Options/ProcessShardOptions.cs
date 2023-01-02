@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Channels;
 
-namespace Eocron.Sharding.Processing
+namespace Eocron.Sharding.Options
 {
     public class ProcessShardOptions
     {
@@ -23,11 +23,8 @@ namespace Eocron.Sharding.Processing
         ///     Default: 100ms
         /// </summary>
         public TimeSpan ProcessStatusCheckInterval { get; set; }
+        public RestartPolicyOptions RestartPolicy { get; set; }
 
-        public TimeSpan ErrorRestartInterval { get; set; }
-
-        public TimeSpan SuccessRestartInterval { get; set; }
-        
         public ProcessShardOptions()
         {
             ProcessStatusCheckInterval = TimeSpan.FromMilliseconds(100);
@@ -39,8 +36,7 @@ namespace Eocron.Sharding.Processing
             {
                 FullMode = BoundedChannelFullMode.Wait
             };
-            ErrorRestartInterval = TimeSpan.Zero;
-            SuccessRestartInterval = TimeSpan.Zero;
+            RestartPolicy = RestartPolicyOptions.Constant(TimeSpan.FromSeconds(1));
         }
     }
 }

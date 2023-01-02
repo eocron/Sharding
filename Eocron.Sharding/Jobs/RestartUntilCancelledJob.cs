@@ -2,19 +2,18 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Eocron.Sharding.Options;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Jobs
 {
     public sealed class RestartUntilCancelledJob : IJob
     {
-        public RestartUntilCancelledJob(IJob inner, ILogger logger, TimeSpan onErrorRestartInterval,
-            TimeSpan onSuccessRestartInterval)
+        public RestartUntilCancelledJob(IJob inner, ILogger logger, RestartPolicyOptions options)
         {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _onErrorRestartInterval = onErrorRestartInterval;
-            _onSuccessRestartInterval = onSuccessRestartInterval;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
         public void Dispose()
@@ -33,11 +32,11 @@ namespace Eocron.Sharding.Jobs
                     _logger.LogDebug("Job running");
                     await _inner.RunAsync(ct).ConfigureAwait(false);
                     _logger.LogDebug("Job completed, running for {elapsed}", sw.Elapsed);
-                    await Task.Delay(_onSuccessRestartInterval, ct).ConfigureAwait(false);
+                    await Task.Delay(_options.OnSuccessDelay, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
-                    _logger.LogDebug("Job stopped", sw.Elapsed);
+                    _logger.LogDebug("Job stopped");
                     break;
                 }
                 catch (Exception e)
@@ -45,7 +44,7 @@ namespace Eocron.Sharding.Jobs
                     _logger.LogError(e, "Job completed with error, running for {elapsed}", sw.Elapsed);
                     try
                     {
-                        await Task.Delay(_onErrorRestartInterval, ct).ConfigureAwait(false);
+                        await Task.Delay(_options.OnErrorDelay, ct).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -57,7 +56,6 @@ namespace Eocron.Sharding.Jobs
 
         private readonly IJob _inner;
         private readonly ILogger _logger;
-        private readonly TimeSpan _onErrorRestartInterval;
-        private readonly TimeSpan _onSuccessRestartInterval;
+        private readonly RestartPolicyOptions _options;
     }
 }

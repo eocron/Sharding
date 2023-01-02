@@ -8,6 +8,7 @@ using Eocron.Sharding.Handlers;
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.TestCommon;
 using Microsoft.Extensions.Logging;
+using Eocron.Sharding.Options;
 
 namespace Eocron.Sharding.Tests.Helpers
 {
@@ -58,12 +59,11 @@ namespace Eocron.Sharding.Tests.Helpers
                     .WithTransient<ILogger>(new TestLogger())
                     .WithTransient<IProcessInputOutputHandlerFactory<string, string, string>>(factory)
                     .WithProcessJob(
-                        new ProcessShardOptions()
+                        new ProcessShardOptions
                         {
                             StartInfo = new ProcessStartInfo("Tools/Eocron.Sharding.TestApp.exe") { ArgumentList = { mode } }
                                 .ConfigureAsService(),
-                            ErrorRestartInterval = TimeSpan.FromMilliseconds(1),
-                            SuccessRestartInterval = TimeSpan.FromMilliseconds(1)
+                            RestartPolicy = RestartPolicyOptions.Constant(TimeSpan.FromMilliseconds(1))
                         })
                     .WithProcessJobWrap(x => new TestProcessJob<string, string, string>(x, handle))
                     .WithTransient<IMetrics>(metrics)

@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Messaging;
+using Eocron.Sharding.Options;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -20,8 +21,7 @@ namespace Eocron.Sharding.RestApi.Pools
             string shardId,
             JsonSerializerSettings settings,
             bool enableConsumer,
-            TimeSpan consumerCheckInterval,
-            TimeSpan onErrorInterval)
+            RestartPolicyOptions options)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _httpClientName = httpClientName ?? throw new ArgumentNullException(nameof(httpClientName));
@@ -41,8 +41,7 @@ namespace Eocron.Sharding.RestApi.Pools
                         _outputs,
                         _errors),
                     logger,
-                    onErrorInterval,
-                    consumerCheckInterval);
+                    options);
             }
         }
 

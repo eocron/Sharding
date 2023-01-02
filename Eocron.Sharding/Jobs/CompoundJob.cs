@@ -7,22 +7,22 @@ namespace Eocron.Sharding.Jobs
 {
     public sealed class CompoundJob : IJob
     {
-        public CompoundJob(params IJob[] inners)
+        public CompoundJob(params IJob[] jobs)
         {
-            _inners = inners ?? throw new ArgumentNullException(nameof(inners));
+            _jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
         }
 
         public void Dispose()
         {
-            foreach (var inner in _inners) inner.Dispose();
+            foreach (var inner in _jobs) inner.Dispose();
         }
 
         public async Task RunAsync(CancellationToken ct)
         {
             await Task.Yield();
-            await Task.WhenAll(_inners.Select(x => x.RunAsync(ct))).ConfigureAwait(false);
+            await Task.WhenAll(_jobs.Select(x => x.RunAsync(ct))).ConfigureAwait(false);
         }
 
-        private readonly IJob[] _inners;
+        private readonly IJob[] _jobs;
     }
 }

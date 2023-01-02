@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using Eocron.Sharding.Handlers;
+using Eocron.Sharding.Options;
 
 namespace Eocron.Sharding
 {
@@ -22,7 +23,7 @@ namespace Eocron.Sharding
             this ShardBuilder<TInput, TOutput, TError> builder,
             ProcessShardOptions options)
         {
-            builder.Add((s, shardId) => AddCoreDependencies(s, shardId, options, builder));
+            builder.Add((s, shardId) => AddCoreDependencies<TInput, TOutput, TError>(s, shardId, options));
             return builder;
         }
 
@@ -40,8 +41,7 @@ namespace Eocron.Sharding
         private static IServiceCollection AddCoreDependencies<TInput, TOutput, TError>(
             IServiceCollection container,
             string shardId,
-            ProcessShardOptions options,
-            ShardBuilder<TInput, TOutput, TError> builder)
+            ProcessShardOptions options)
         {
             container
                 .AddSingleton<IShardProcessJob<TInput, TOutput, TError>>(x => 
@@ -69,8 +69,7 @@ namespace Eocron.Sharding
                 .Replace<IJob>((x, prev) => new RestartUntilCancelledJob(
                     prev,
                     x.GetRequiredService<ILogger>(),
-                    options.ErrorRestartInterval,
-                    options.SuccessRestartInterval));
+                    options.RestartPolicy));
             return container;
         }
     }

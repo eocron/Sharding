@@ -4,6 +4,7 @@ using App.Metrics;
 using Eocron.Sharding.AppMetrics.Jobs;
 using Eocron.Sharding.AppMetrics.Wrappings;
 using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Options;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,24 +26,23 @@ namespace Eocron.Sharding.AppMetrics
         {
             return container
                 .Replace<IShardInputManager<TInput>>((x, prev) =>
-                    new MonitoredShardInputManager<TInput>(prev, x.GetRequiredService<IMetrics>(), GetShardTags(x, options.Tags)))
+                    new MonitoredShardInputManager<TInput>(prev, x.GetRequiredService<IMetrics>(),
+                        GetShardTags(x, options.Tags)))
                 .Replace<IShardOutputProvider<TOutput, TError>>((x, prev) =>
-                    new MonitoredShardOutputProvider<TOutput, TError>(prev, x.GetRequiredService<IMetrics>(), GetShardTags(x, options.Tags)))
+                    new MonitoredShardOutputProvider<TOutput, TError>(prev, x.GetRequiredService<IMetrics>(),
+                        GetShardTags(x, options.Tags)))
                 .Replace<IJob>((x, prev) =>
                     new CompoundJob(
                         prev,
                         new RestartUntilCancelledJob(
                             new ShardMonitoringJob(
-                                x.GetRequiredService<ILogger>(),
                                 x.GetRequiredService<IShardStateProvider>(),
                                 x.GetRequiredService<IProcessDiagnosticInfoProvider>(),
                                 x.GetRequiredService<IMetrics>(),
-                                options.CheckInterval,
                                 options.CheckTimeout,
                                 GetShardTags(x, options.Tags)),
                             x.GetRequiredService<ILogger>(),
-                            options.ErrorRestartInterval,
-                            TimeSpan.Zero)));
+                            RestartPolicyOptions.Constant(options.CheckInterval))));
         }
 
         private static IReadOnlyDictionary<string, string> GetShardTags(IServiceProvider provider,
