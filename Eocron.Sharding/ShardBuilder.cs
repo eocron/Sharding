@@ -5,11 +5,11 @@ namespace Eocron.Sharding
 {
     public sealed class ShardBuilder<TInput, TOutput, TError>
     {
-        public delegate void ConfiguratorStep<TInput, TOutput, TError>(IServiceCollection shardServices, string shardId);
-        public ConfiguratorStep<TInput, TOutput, TError> Configurator { get; set; }
+        public delegate void ConfiguratorStep(IServiceCollection shardServices, string shardId);
+        public ConfiguratorStep Configurator { get; set; }
         public IServiceProvider ParentServiceProvider { get; set; }
 
-        public void Add(ConfiguratorStep<TInput, TOutput, TError> next)
+        public void Add(ConfiguratorStep next)
         {
             if(next == null)
                 return;
@@ -26,15 +26,13 @@ namespace Eocron.Sharding
             where TImplementation : TInterface
             where TInterface : class
         {
-            Add((s, id)=> s.AddTransient<TInterface>(sp=> implementation));
-            return this;
+            return WithTransient<TInterface>(_ => implementation);
         }
 
         public ShardBuilder<TInput, TOutput, TError> WithTransient<TInterface>(TInterface implementation)
             where TInterface : class
         {
-            Add((s, id) => s.AddTransient<TInterface>(sp => implementation));
-            return this;
+            return WithTransient<TInterface>(_ => implementation);
         }
 
         public ShardBuilder<TInput, TOutput, TError> WithTransient<TInterface>(Func<string, TInterface> implementationProvider)

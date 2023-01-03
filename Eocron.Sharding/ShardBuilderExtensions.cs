@@ -1,36 +1,15 @@
 ﻿using System;
-using System.Linq;
 using Eocron.Sharding.Handlers;
 using Eocron.Sharding.Jobs;
 using Eocron.Sharding.Options;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding
 {
     public static class ShardBuilderExtensions
     {
-        public static IServiceCollection AddShardFactory<TInput, TOutput, TError>(this IServiceCollection services,
-            Action<IServiceProvider, ShardBuilder<TInput, TOutput, TError>> builderConfigurator)
-        {
-            if (services.All(x => x.ServiceType != typeof(ChildProcessWatcher)))
-                AddShardProcessWatcherHostedService(services);
-
-            services.AddSingleton(x =>
-            {
-                var builder = new ShardBuilder<TInput, TOutput, TError>()
-                    .WithTransient(x.GetRequiredService<ILoggerFactory>())
-                    .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
-                    .WithTransient(
-                        x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>());
-                builder.ParentServiceProvider = x;
-                builderConfigurator(x, builder);
-                return builder.CreateFactory();
-            });
-            return services;
-        }
 
         /// <summary>
         ///     Periodically restart shard.
@@ -117,15 +96,6 @@ namespace Eocron.Sharding
                     x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
                     options.RestartPolicy));
             return container;
-        }
-
-        private static IServiceCollection AddShardProcessWatcherHostedService(this IServiceCollection services)
-        {
-            services.AddSingleton(x => new ChildProcessWatcher(x.GetRequiredService<ILogger<ChildProcessWatcher>>()));
-            services.AddSingleton<IChildProcessWatcher>(x => x.GetRequiredService<ChildProcessWatcher>());
-            services.AddSingleton<IHostedService>(
-                x => new JobHostedService(x.GetRequiredService<ChildProcessWatcher>()));
-            return services;
         }
     }
 }
