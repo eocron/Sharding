@@ -20,7 +20,7 @@ namespace Eocron.Sharding.TestCommon
             _outputs = Channel.CreateUnbounded<BrokerMessage<string>>();
             _errors = Channel.CreateUnbounded<BrokerMessage<string>>();
             _semaphore = new SemaphoreSlim(1);
-            _timeout = TimeSpan.FromMilliseconds(100);
+            _cooldown = new CooldownTask(TimeSpan.FromMilliseconds(100));
         }
 
         public void Dispose()
@@ -53,7 +53,7 @@ namespace Eocron.Sharding.TestCommon
                 foreach (var item in items)
                     await _process.StandardInput.WriteLineAsync(item.Message).ConfigureAwait(false);
 
-                await WhenFinished(ct).ConfigureAwait(false);
+                await _cooldown.WaitAsync(ct).ConfigureAwait(false);
             }
             finally
             {
@@ -71,7 +71,7 @@ namespace Eocron.Sharding.TestCommon
                     Message = e.Data,
                     Timestamp = DateTime.UtcNow
                 });
-                _deadline = DateTime.UtcNow + _timeout;
+                _cooldown.Refresh();
             }
         }
 
@@ -85,14 +85,8 @@ namespace Eocron.Sharding.TestCommon
                     Message = e.Data,
                     Timestamp = DateTime.UtcNow
                 });
-                _deadline = DateTime.UtcNow + _timeout;
+                _cooldown.Refresh();
             }
-        }
-
-        private async Task WhenFinished(CancellationToken ct)
-        {
-            _deadline = DateTime.UtcNow + _timeout;
-            while (_deadline < DateTime.UtcNow) await Task.Delay(_timeout, ct).ConfigureAwait(false);
         }
 
         private readonly Channel<BrokerMessage<string>> _errors;
@@ -100,7 +94,6 @@ namespace Eocron.Sharding.TestCommon
         private readonly Process _process;
         private readonly Func<string> _idGenerator;
         private readonly SemaphoreSlim _semaphore;
-        private readonly TimeSpan _timeout;
-        private DateTime _deadline;
+        private readonly CooldownTask _cooldown;
     }
 }

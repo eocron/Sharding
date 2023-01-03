@@ -27,18 +27,20 @@ namespace Eocron.Sharding
         {
             ClearOutputAndErrors(shard);
             await shard.PublishAsync(messages, ct).ConfigureAwait(false);
-
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             var consumers = Task.WhenAll(
                 ConsumeAsync(shard.Outputs, outputHandler, cts.Token, ct),
                 ConsumeAsync(shard.Errors, errorHandler, cts.Token, ct));
-
             await WhenReady(shard, cts.Token).ConfigureAwait(false);
             cts.Cancel();
             await consumers.ConfigureAwait(false);
         }
 
-        private static async Task ConsumeAsync<T>(ChannelReader<T> channel, Func<List<T>, CancellationToken, Task> handler, CancellationToken consumeCt, CancellationToken stopToken)
+        private static async Task ConsumeAsync<T>(
+            ChannelReader<T> channel, 
+            Func<List<T>, CancellationToken, Task> handler, 
+            CancellationToken consumeCt, 
+            CancellationToken stopToken)
         {
             await Task.Yield();
             while (!consumeCt.IsCancellationRequested)
@@ -51,7 +53,10 @@ namespace Eocron.Sharding
                     {
                         tmp.Add(item);
                     }
-                    await handler(tmp, stopToken).ConfigureAwait(false);
+                    if (tmp.Count > 0)
+                    {
+                        await handler(tmp, stopToken).ConfigureAwait(false);
+                    }
                 }
                 catch (OperationCanceledException) when (consumeCt.IsCancellationRequested && !stopToken.IsCancellationRequested)
                 {

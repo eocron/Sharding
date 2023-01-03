@@ -20,16 +20,8 @@ namespace Eocron.Sharding.Tests
             await handle.VerifyForever(x => x.OnStarting(), Times.AtLeast(3), cts.Token);
             cts.Cancel();
             await task;
+            Assert.Throws<AggregateException>(()=> publish.Wait());
             handle.Verify(x => x.OnStopped(), Times.AtMost(1));
-        }
-
-        [Test,Explicit]
-        public async Task CantStartProfile()
-        {
-            for (int i = 0; i < 100; i++)
-            {
-                await CantStart().ConfigureAwait(false);
-            }
         }
 
         [Test]
@@ -39,8 +31,11 @@ namespace Eocron.Sharding.Tests
             using var shard = ProcessShardHelper.CreateTestShard("stream");
             var task = shard.RunAsync(cts.Token);
             var outputs = new List<BrokerMessage<string>>();
-            await shard.PublishAndHandleUntilReadyAsync(new[] { "hang", "test" }.AsTestMessages(),
-                async (x, ct) => outputs.AddRange(x),
+            await shard.PublishAndHandleUntilReadyAsync(new[] { "hang", "test" }.AsTestMessages(), (x, ct) =>
+                {
+                    outputs.AddRange(x);
+                    return Task.CompletedTask;
+                },
                 (x, ct) => Task.CompletedTask,
                 cts.Token);
             cts.Cancel();
