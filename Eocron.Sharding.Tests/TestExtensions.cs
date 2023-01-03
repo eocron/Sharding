@@ -27,8 +27,7 @@ namespace Eocron.Sharding.Tests
             return enumerable.Select(x => new BrokerMessage<T>()
             {
                 Key = Guid.NewGuid().ToString(),
-                Message = x,
-                Timestamp = DateTime.UtcNow
+                Message = x
             });
         }
     }

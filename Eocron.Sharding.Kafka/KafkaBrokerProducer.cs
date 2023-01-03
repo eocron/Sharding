@@ -8,7 +8,7 @@ using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Kafka
 {
-    public sealed class KafkaBrokerProducer<TKey, TMessage> : IBrokerProducer<TMessage>
+    public sealed class KafkaBrokerProducer<TMessage> : IBrokerProducer<TMessage>
     {
         public KafkaBrokerProducer(ProducerBuilder<string, TMessage> builder, string topicName)
         {

@@ -68,8 +68,7 @@ namespace Eocron.Sharding.TestCommon
                 _errors.Writer.TryWrite(new BrokerMessage<string>
                 {
                     Key = "err_" + _idGenerator(),
-                    Message = e.Data,
-                    Timestamp = DateTime.UtcNow
+                    Message = e.Data
                 });
                 _cooldown.Refresh();
             }
@@ -82,8 +81,7 @@ namespace Eocron.Sharding.TestCommon
                 _outputs.Writer.TryWrite(new BrokerMessage<string>
                 {
                     Key = "out_"+_idGenerator(),
-                    Message = e.Data,
-                    Timestamp = DateTime.UtcNow
+                    Message = e.Data
                 });
                 _cooldown.Refresh();
             }

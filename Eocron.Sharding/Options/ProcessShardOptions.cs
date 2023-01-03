@@ -6,6 +6,7 @@ namespace Eocron.Sharding.Options
 {
     public class ProcessShardOptions
     {
+        public bool EnrichHeaders { get; set; }
         public BoundedChannelOptions ErrorOptions { get; set; }
 
         public BoundedChannelOptions OutputOptions { get; set; }
@@ -22,6 +23,7 @@ namespace Eocron.Sharding.Options
 
         public ProcessShardOptions()
         {
+            EnrichHeaders = true;
             ErrorOptions = new(10000)
             {
                 FullMode = BoundedChannelFullMode.DropOldest

@@ -102,8 +102,7 @@ namespace Eocron.Sharding.Tests
             return Enumerable.Range(0, count).Select(x => new BrokerMessage<string>()
             {
                 Key = "in_"+(x+1),
-                Message = "test_message_" + (x+1),
-                Timestamp = DateTime.UtcNow
+                Message = "test_message_" + (x+1)
             });
         }
     }

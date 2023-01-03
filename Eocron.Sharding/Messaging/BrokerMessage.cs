@@ -13,6 +13,11 @@ namespace Eocron.Sharding.Messaging
 
         public DateTime Timestamp { get; set; }
 
+        public BrokerMessage()
+        {
+            Timestamp = DateTime.UtcNow;
+        }
+
         public override string ToString()
         {
             return string.Format($"{Key}");

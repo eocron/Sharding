@@ -28,7 +28,7 @@ namespace Eocron.Sharding.Processing
             _outputs = Channel.CreateBounded<BrokerMessage<TOutput>>(_options.OutputOptions);
             _errors = Channel.CreateBounded<BrokerMessage<TError>>(_options.ErrorOptions);
             _publishSemaphore = new SemaphoreSlim(1);
-            Id = id ?? $"process_shard_{Guid.NewGuid():N}";
+            Id = id ?? $"shard-{Guid.NewGuid()}";
         }
 
         public void Dispose()
@@ -39,20 +39,13 @@ namespace Eocron.Sharding.Processing
             _outputs.Writer.Complete(CreateShardDisposedException());
             _errors.Writer.Complete(CreateShardDisposedException());
             _publishSemaphore.Dispose();
-            try
-            {
-                _current?.Dispose();
-            }
-            catch
-            {
-
-            }
+            _currentHandler?.Dispose();
             _disposed = true;
         }
 
         public Task<bool> IsReadyAsync(CancellationToken ct)
         {
-            var process = _current;
+            var process = _currentHandler;
             return Task.FromResult(process != null &&
                                    ProcessHelper.IsAlive(process.Process)
                                    && _publishSemaphore.CurrentCount > 0
@@ -104,7 +97,7 @@ namespace Eocron.Sharding.Processing
                     ProcessOutputs(ct => handler.ReadAllOutputsAsync(ct), _outputs, processId, cts.Token),
                     ProcessOutputs(ct => handler.ReadAllErrorsAsync(ct), _errors, processId, cts.Token)
                 };
-                _current = new ProcessAndHandler(process, handler);
+                _currentHandler = new ProcessHandler(process, handler);
                 await WaitUntilExit(process, cts.Token).ConfigureAwait(false);
 
                 cts.Cancel();
@@ -142,7 +135,7 @@ namespace Eocron.Sharding.Processing
         public bool TryGetProcessDiagnosticInfo(out ProcessDiagnosticInfo info)
         {
             info = null;
-            var current = _current;
+            var current = _currentHandler;
             if (current == null)
                 return false;
             info = ProcessHelper.DefaultIfNotFound(
@@ -198,12 +191,12 @@ namespace Eocron.Sharding.Processing
             return new ObjectDisposedException(Id, "Shard is disposed.");
         }
 
-        private async Task<ProcessAndHandler> GetRunningProcessAsync(CancellationToken ct)
+        private async Task<ProcessHandler> GetRunningProcessAsync(CancellationToken ct)
         {
-            ProcessAndHandler process = null;
+            ProcessHandler process = null;
             await DelayHelper.WhileTrueAsync(() =>
             {
-                process = _current;
+                process = _currentHandler;
                 var healthy = process != null && ProcessHelper.IsAlive(process.Process) && process.Handler.IsReady();
                 return Task.FromResult(!healthy);
             }, ct).ConfigureAwait(false);
@@ -243,7 +236,7 @@ namespace Eocron.Sharding.Processing
                 {
                     await foreach (var item in enumerationProvider(ct)
                                        .ConfigureAwait(false))
-                        await output.Writer.WriteAsync(item, ct).ConfigureAwait(false);
+                        await output.Writer.WriteAsync(EnrichHeaders(item, processId), ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -258,6 +251,21 @@ namespace Eocron.Sharding.Processing
                     _logger.LogError(e, "Failed to retrieve outputs/errors from process {process_id} shard",
                         processId);
                 }
+        }
+
+        private BrokerMessage<T> EnrichHeaders<T>(BrokerMessage<T> msg, int? processId)
+        {
+            if (_options.EnrichHeaders)
+            {
+                msg.Headers = msg.Headers ?? new Dictionary<string, string>();
+                msg.Headers.TryAdd(ProcessJobHeaders.ShardId, Id);
+                if (processId != null)
+                {
+                    msg.Headers.TryAdd(ProcessJobHeaders.ShardProcessId, processId.Value.ToString());
+                }
+            }
+
+            return msg;
         }
 
         private async Task WaitUntilExit(Process process, CancellationToken ct)
@@ -283,16 +291,16 @@ namespace Eocron.Sharding.Processing
         private readonly IInputOutputHandlerFactory<TInput, TOutput, TError> _handlerFactory;
         private readonly SemaphoreSlim _publishSemaphore;
         private bool _disposed;
-        private ProcessAndHandler _current;
+        private ProcessHandler _currentHandler;
 
-        private class ProcessAndHandler : IDisposable
+        private class ProcessHandler : IDisposable
         {
             private readonly Process _process;
             private readonly IInputOutputHandler<TInput, TOutput, TError> _handler;
             public Process Process => _process;
             public IInputOutputHandler<TInput, TOutput, TError> Handler => _handler;
 
-            public ProcessAndHandler(Process process, IInputOutputHandler<TInput, TOutput, TError> handler)
+            public ProcessHandler(Process process, IInputOutputHandler<TInput, TOutput, TError> handler)
             {
                 _process = process;
                 _handler = handler;
