@@ -60,12 +60,7 @@ namespace Eocron.Sharding.Pools
                 throw new ArgumentNullException(nameof(id));
             return _immutable.ContainsKey(id);
         }
-
-        public bool HasFree()
-        {
-            return _unreserved.Count > 0;
-        }
-
+        
         public void Return(IShard<TInput, TOutput, TError> shard)
         {
             _unreserved.Enqueue(shard.Id, long.MaxValue, shard);

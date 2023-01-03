@@ -28,7 +28,7 @@ namespace Eocron.Sharding
                     .WithTransient(id => x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard[" + id + "]"))
                     .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
                     .WithTransient(
-                        x.GetRequiredService<IProcessInputOutputHandlerFactory<TInput, TOutput, TError>>());
+                        x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>());
                     builderConfigurator(x, builder);
                 return builder.CreateFactory();
             });
@@ -63,7 +63,7 @@ namespace Eocron.Sharding
                 .AddSingleton<IShardProcessJob<TInput, TOutput, TError>>(x => 
                     new ProcessJob<TInput, TOutput, TError>(
                     options,
-                    x.GetRequiredService<IProcessInputOutputHandlerFactory<TInput, TOutput, TError>>(),
+                    x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>(),
                     x.GetRequiredService<ILogger>(),
                     x.GetRequiredService<IChildProcessWatcher>(),
                     shardId))

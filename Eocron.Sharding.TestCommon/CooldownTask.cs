@@ -13,7 +13,7 @@ namespace Eocron.Sharding.TestCommon
         public CooldownTask(TimeSpan timeout)
         {
             _timeout = timeout;
-            _delay = TimeSpan.FromTicks(Math.Min(_timeout.Ticks / 5, TimeSpan.TicksPerSecond));
+            _delay = TimeSpan.FromTicks(Math.Min(_timeout.Ticks >> 2, TimeSpan.TicksPerSecond));
         }
 
         public void Refresh()

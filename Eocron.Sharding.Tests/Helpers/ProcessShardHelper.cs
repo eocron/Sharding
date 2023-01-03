@@ -57,7 +57,7 @@ namespace Eocron.Sharding.Tests.Helpers
                 new ShardBuilder<string, string, string>()
                     .WithTransient<IChildProcessWatcher>(watcher)
                     .WithTransient<ILogger>(new TestLogger())
-                    .WithTransient<IProcessInputOutputHandlerFactory<string, string, string>>(factory)
+                    .WithTransient<IInputOutputHandlerFactory<string, string, string>>(factory)
                     .WithProcessJob(
                         new ProcessShardOptions
                         {

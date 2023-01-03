@@ -6,8 +6,6 @@
 
         bool TryReserveFree(out string id, out IShard<TInput, TOutput, TError> shard);
 
-        bool HasFree();
-
         void Return(IShard<TInput, TOutput, TError> shard);
     }
 }

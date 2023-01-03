@@ -9,7 +9,7 @@ using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.TestCommon
 {
-    public sealed class TestAppHandler : IProcessInputOutputHandler<string, string, string>
+    public sealed class TestAppHandler : IInputOutputHandler<string, string, string>
     {
         public TestAppHandler(Process process, Func<string> idGenerator)
         {

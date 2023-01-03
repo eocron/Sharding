@@ -6,7 +6,7 @@ using Eocron.Sharding.Messaging;
 
 namespace Eocron.Sharding.Handlers
 {
-    public interface IProcessInputOutputHandler<TInput, TOutput, TError> : IProcessStateProvider, IDisposable
+    public interface IInputOutputHandler<TInput, TOutput, TError> : IHandlerStateProvider, IDisposable
     {
         IAsyncEnumerable<BrokerMessage<TOutput>> ReadAllOutputsAsync(CancellationToken ct);
 

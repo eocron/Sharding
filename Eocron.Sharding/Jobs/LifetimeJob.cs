@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Eocron.Sharding.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace Eocron.Sharding.Jobs
@@ -37,7 +38,7 @@ namespace Eocron.Sharding.Jobs
         public async Task RestartAsync(CancellationToken ct)
         {
             await StopAsync(ct).ConfigureAwait(false);
-            await TaskHelper.WhileTrueAsync(async () => !await IsStoppedAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+            await DelayHelper.WhileTrueAsync(async () => !await IsStoppedAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
             await StartAsync(ct).ConfigureAwait(false);
             _logger.LogInformation("Shard restarted");
         }

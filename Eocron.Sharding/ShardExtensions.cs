@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Eocron.Sharding.Helpers;
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
 
@@ -14,7 +15,7 @@ namespace Eocron.Sharding
         {
             IShard<TInput, TOutput, TError> shard = null;
             string shardId;
-            await TaskHelper.WhileTrueAsync(() => Task.FromResult(!shardManager.TryReserveFree(out shardId, out shard)), ct).ConfigureAwait(false);
+            await DelayHelper.WhileTrueAsync(() => Task.FromResult(!shardManager.TryReserveFree(out shardId, out shard)), ct).ConfigureAwait(false);
             return shard;
         }
 
@@ -75,7 +76,7 @@ namespace Eocron.Sharding
             this IShard<TInput, TOutput, TError> shard,
             CancellationToken ct)
         {
-            await TaskHelper.WhileTrueAsync(async () => !await shard.IsReadyAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+            await DelayHelper.WhileTrueAsync(async () => !await shard.IsReadyAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         }
 
 

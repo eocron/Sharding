@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace Eocron.Sharding.Processing
+namespace Eocron.Sharding.Helpers
 {
     internal static class ProcessHelper
     {

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Eocron.Sharding.Handlers;
+using Eocron.Sharding.Helpers;
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Options;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ namespace Eocron.Sharding.Processing
     {
         public ProcessJob(
             ProcessShardOptions options,
-            IProcessInputOutputHandlerFactory<TInput, TOutput, TError> handlerFactory,
+            IInputOutputHandlerFactory<TInput, TOutput, TError> handlerFactory,
             ILogger logger,
             IChildProcessWatcher watcher = null,
             string id = null)
@@ -200,7 +201,7 @@ namespace Eocron.Sharding.Processing
         private async Task<ProcessAndHandler> GetRunningProcessAsync(CancellationToken ct)
         {
             ProcessAndHandler process = null;
-            await TaskHelper.WhileTrueAsync(() =>
+            await DelayHelper.WhileTrueAsync(() =>
             {
                 process = _current;
                 var healthy = process != null && ProcessHelper.IsAlive(process.Process) && process.Handler.IsReady();
@@ -261,12 +262,12 @@ namespace Eocron.Sharding.Processing
 
         private async Task WaitUntilExit(Process process, CancellationToken ct)
         {
-            await TaskHelper.WhileTrueAsync(() => Task.FromResult(ProcessHelper.IsAlive(process)), ct).ConfigureAwait(false);
+            await DelayHelper.WhileTrueAsync(() => Task.FromResult(ProcessHelper.IsAlive(process)), ct).ConfigureAwait(false);
         }
 
-        private async Task WaitUntilReady(IProcessStateProvider provider, CancellationToken ct)
+        private async Task WaitUntilReady(IHandlerStateProvider provider, CancellationToken ct)
         {
-            await TaskHelper.WhileTrueAsync(() => Task.FromResult(!provider.IsReady()), ct).ConfigureAwait(false);
+            await DelayHelper.WhileTrueAsync(() => Task.FromResult(!provider.IsReady()), ct).ConfigureAwait(false);
         }
 
         public ChannelReader<BrokerMessage<TError>> Errors => _errors.Reader;
@@ -279,7 +280,7 @@ namespace Eocron.Sharding.Processing
         private readonly IChildProcessWatcher _watcher;
         private readonly ILogger _logger;
         private readonly ProcessShardOptions _options;
-        private readonly IProcessInputOutputHandlerFactory<TInput, TOutput, TError> _handlerFactory;
+        private readonly IInputOutputHandlerFactory<TInput, TOutput, TError> _handlerFactory;
         private readonly SemaphoreSlim _publishSemaphore;
         private bool _disposed;
         private ProcessAndHandler _current;
@@ -287,11 +288,11 @@ namespace Eocron.Sharding.Processing
         private class ProcessAndHandler : IDisposable
         {
             private readonly Process _process;
-            private readonly IProcessInputOutputHandler<TInput, TOutput, TError> _handler;
+            private readonly IInputOutputHandler<TInput, TOutput, TError> _handler;
             public Process Process => _process;
-            public IProcessInputOutputHandler<TInput, TOutput, TError> Handler => _handler;
+            public IInputOutputHandler<TInput, TOutput, TError> Handler => _handler;
 
-            public ProcessAndHandler(Process process, IProcessInputOutputHandler<TInput, TOutput, TError> handler)
+            public ProcessAndHandler(Process process, IInputOutputHandler<TInput, TOutput, TError> handler)
             {
                 _process = process;
                 _handler = handler;

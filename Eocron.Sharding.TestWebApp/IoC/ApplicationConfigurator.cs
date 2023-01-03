@@ -27,7 +27,7 @@ namespace Eocron.Sharding.TestWebApp.IoC
                     new MetricsPrometheusTextOutputFormatter(new MetricsPrometheusOptions { NewLineFormat = NewLineFormat.Unix });
             });
             services.AddShardProcessWatcherHostedService();
-            services.AddSingleton<IProcessInputOutputHandlerFactory<string, string, string>>(x=> new TestAppHandlerFactory());
+            services.AddSingleton<IInputOutputHandlerFactory<string, string, string>>(x=> new TestAppHandlerFactory());
             services.AddShardFactory<string, string, string>((sp, builder) =>
             {
                 builder
