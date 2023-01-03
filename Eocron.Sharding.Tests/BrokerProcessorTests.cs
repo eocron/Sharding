@@ -2,6 +2,7 @@
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Options;
 using Eocron.Sharding.Pools;
+using Eocron.Sharding.TestCommon;
 using Eocron.Sharding.Tests.Helpers;
 using FluentAssertions;
 using Moq;
@@ -14,10 +15,9 @@ namespace Eocron.Sharding.Tests
         [OneTimeSetUp]
         public async Task Setup()
         {
-            var logger = new TestLogger();
             _cts = new CancellationTokenSource(TestTimeout);
             _shardFactory = ProcessShardHelper.CreateTestShardFactory("stream");
-            _pool = new ConstantShardPool<string, string, string>(logger, _shardFactory, new ConstantShardPoolOptions() { PoolSize = 1 });
+            _pool = new ConstantShardPool<string, string, string>(new TestLogger("shard_pool"), _shardFactory, new ConstantShardPoolOptions() { PoolSize = 1 });
             _consumer = new Mock<IBrokerConsumer<string>>();
             _consumer.Setup(x => x.GetConsumerAsyncEnumerable(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(ct=> AsyncEnumerable.Empty<IEnumerable<BrokerMessage<string>>>());

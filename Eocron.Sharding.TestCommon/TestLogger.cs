@@ -1,7 +1,9 @@
+using System;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Eocron.Sharding.Tests.Helpers;
+namespace Eocron.Sharding.TestCommon;
 
 public class TestLogger : ILogger
 {

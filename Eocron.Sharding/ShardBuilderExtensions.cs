@@ -25,7 +25,7 @@ namespace Eocron.Sharding
             services.AddSingleton(x =>
             {
                 var builder = new ShardBuilder<TInput, TOutput, TError>()
-                    .WithTransient(id => x.GetRequiredService<ILoggerFactory>().CreateLogger("Shard[" + id + "]"))
+                    .WithTransient(x.GetRequiredService<ILoggerFactory>())
                     .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
                     .WithTransient(
                         x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>());
@@ -64,7 +64,7 @@ namespace Eocron.Sharding
                     new ProcessJob<TInput, TOutput, TError>(
                     options,
                     x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>(),
-                    x.GetRequiredService<ILogger>(),
+                    x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
                     x.GetRequiredService<IChildProcessWatcher>(),
                     shardId))
                 .AddSingleton<IImmutableShardProcess>(x =>
@@ -79,12 +79,12 @@ namespace Eocron.Sharding
                     x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IJob>(x =>
                     x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
-                .Replace<IJob, LifetimeJob>((x, prev) => new LifetimeJob(prev, x.GetRequiredService<ILogger>(), true))
+                .Replace<IJob, LifetimeJob>((x, prev) => new LifetimeJob(prev, x.GetRequiredService<ILoggerFactory>().CreateLogger<LifetimeJob>(), true))
                 .AddSingleton<ILifetimeManager>(x => x.GetRequiredService<LifetimeJob>())
                 .AddSingleton<ILifetimeProvider>(x => x.GetRequiredService<LifetimeJob>())
                 .Replace<IJob>((x, prev) => new RestartUntilCancelledJob(
                     prev,
-                    x.GetRequiredService<ILogger>(),
+                    x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
                     options.RestartPolicy));
             return container;
         }

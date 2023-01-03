@@ -25,9 +25,7 @@ namespace Eocron.Sharding.Helpers
                 {
                     break;
                 }
-
-                var delayMs = delayProvider(i).Ticks / TimeSpan.TicksPerMillisecond;
-                await Task.Delay((int)delayMs, ct).ConfigureAwait(false);
+                await Task.Delay(delayProvider(i), ct).ConfigureAwait(false);
             }
         }
 

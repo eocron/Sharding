@@ -41,7 +41,7 @@ namespace Eocron.Sharding.AppMetrics
                                 x.GetRequiredService<IMetrics>(),
                                 options.CheckTimeout,
                                 GetShardTags(x, options.Tags)),
-                            x.GetRequiredService<ILogger>(),
+                            x.GetRequiredService<ILoggerFactory>().CreateLogger<ShardMonitoringJob>(),
                             RestartPolicyOptions.Constant(options.CheckInterval))));
         }
 
