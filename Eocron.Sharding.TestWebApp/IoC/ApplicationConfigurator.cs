@@ -26,7 +26,6 @@ namespace Eocron.Sharding.TestWebApp.IoC
                 x.MetricsTextEndpointOutputFormatter =
                     new MetricsPrometheusTextOutputFormatter(new MetricsPrometheusOptions { NewLineFormat = NewLineFormat.Unix });
             });
-            services.AddShardProcessWatcherHostedService();
             services.AddSingleton<IInputOutputHandlerFactory<string, string, string>>(x=> new TestAppHandlerFactory());
             services.AddShardFactory<string, string, string>((sp, builder) =>
             {
@@ -37,8 +36,8 @@ namespace Eocron.Sharding.TestWebApp.IoC
                             StartInfo = new ProcessStartInfo("Tools/Eocron.Sharding.TestApp.exe", "stream")
                                 .ConfigureAsService()
                         })
-                    .WithTransient(sp.GetRequiredService<IMetrics>())
-                    .WithAppMetrics(new AppMetricsShardOptions());
+                    .WithAppMetrics(new AppMetricsShardOptions())
+                    .WithAutoRestart(TimeSpan.FromSeconds(10));
             });
             services.AddSingleton(x =>
                 new ConstantShardPool<string, string, string>(

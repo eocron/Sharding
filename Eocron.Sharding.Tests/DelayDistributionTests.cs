@@ -6,22 +6,22 @@ namespace Eocron.Sharding.Tests
 {
     [Explicit]
     [TestFixture]
-    public class DistributionTests
+    public class DelayDistributionTests
     {
-        public static IEnumerable<int> GetRandomInts(int count, int min, int max)
+        public static IEnumerable<TimeSpan> GetRandomDelays(int count, int min, int max)
         {
             var rnd = new Random();
-            return Enumerable.Range(0, count).Select(x => rnd.Next(min, max));
+            return Enumerable.Range(0, count).Select(x => TimeSpan.FromMilliseconds(rnd.Next(min, max)));
         }
 
-        public static IEnumerable<int> GetMatchings(long sample, Func<int, int> provider, int perTry)
+        public static IEnumerable<TimeSpan> GetDelayApproximation(TimeSpan sample, Func<int, TimeSpan> provider, TimeSpan perTry)
         {
-            var sum = 0;
+            TimeSpan sum = TimeSpan.Zero;
             int i = 0;
             while (sum < sample)
             {
                 var part = provider(i++) + perTry;
-                sum += part;
+                sum = sum + part;
                 yield return part;
             }
         }
@@ -52,28 +52,29 @@ namespace Eocron.Sharding.Tests
             }
         }
 
-        public static MeasurementInfo MeasureDelayFunctionMs(IEnumerable<int> randomProvider, Func<int, int> provider, int perTryDelayMs, string name)
+        public static MeasurementInfo MeasureStatistics(IList<TimeSpan> actual, Func<int, TimeSpan> provider, TimeSpan perTryDelay, string name)
         {
-            var diffs = new List<long>();
-            var samples = randomProvider.Select(x=> (long)x).ToList();
+            var diffs = new List<TimeSpan>();
             var tryCount = new List<long>();
-            foreach (var sample in samples)
+            foreach (var sample in actual)
             {
-                var matchings = GetMatchings(sample, provider, perTryDelayMs).ToList();
-                var sum = matchings.Sum();
+                var matchings = GetDelayApproximation(sample, provider, perTryDelay).DefaultIfEmpty(TimeSpan.Zero).ToList();
+                var sum = matchings.Aggregate((x, y) => x + y);
                 var diff = sum - sample;
                 diffs.Add(diff);
                 tryCount.Add(matchings.Count);
             }
             diffs.Sort();
+            var diffSum = diffs.Aggregate((x, y) => x + y);
+            var actualSum = actual.Aggregate((x, y) => x + y);
             return new MeasurementInfo
             {
                 Name = name,
-                MeanLoss = TimeSpan.FromMilliseconds(diffs[diffs.Count / 2]),
-                AverageLoss = TimeSpan.FromMilliseconds(diffs.Average()),
-                TotalLoss = TimeSpan.FromMilliseconds(diffs.Sum()),
-                TotalTryLoss = TimeSpan.FromMilliseconds(tryCount.Sum() * perTryDelayMs),
-                LossPercent = diffs.Sum() / (float)samples.Sum()
+                MeanLoss = diffs[diffs.Count / 2],
+                AverageLoss = diffSum / diffs.Count,
+                TotalLoss = diffSum,
+                TotalTryLoss = tryCount.Sum() * perTryDelay,
+                LossPercent = diffSum.Ticks / (float)actualSum.Ticks
             };
         }
 
@@ -95,7 +96,8 @@ namespace Eocron.Sharding.Tests
         [TestCase(100000, 0, 100000, 1)]
         public void Measure(int count, int minMs, int maxMs, int perTryDelayMs)
         {
-            var samples = GetRandomInts(count, minMs, maxMs).ToList();
+            var perTryDelay = TimeSpan.FromMilliseconds(perTryDelayMs);
+            var samples = GetRandomDelays(count, minMs, maxMs).ToList();
             var list = new List<MeasurementInfo>()
             {
                 //MeasureDelayFunctionMs(
@@ -105,17 +107,15 @@ namespace Eocron.Sharding.Tests
                 //        .TotalMilliseconds,
                 //    perTryDelayMs,
                 //    "Linear"),
-                MeasureDelayFunctionMs(
+                MeasureStatistics(
                     samples,
-                    x => (int)DelayHelper.ConstantDelayPolicy(x, TimeSpan.FromMilliseconds(100)).TotalMilliseconds,
-                    perTryDelayMs,
+                    x => DelayHelper.ConstantDelayPolicy(x, TimeSpan.FromMilliseconds(100)),
+                    perTryDelay,
                     "Constant"),
-                MeasureDelayFunctionMs(
+                MeasureStatistics(
                     samples,
-                    x => (int)DelayHelper.ExponentialDelayPolicy(x, TimeSpan.FromMilliseconds(1),
-                        TimeSpan.FromSeconds(5),
-                        DelayHelper.GoldenRatio).TotalMilliseconds,
-                    perTryDelayMs,
+                    x => DelayHelper.ExponentialDelayPolicy(x, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(5)),
+                    perTryDelay,
                     "Exponential")
             };
             list.Sort((x,y)=> x.LossPercent.CompareTo(y.LossPercent));

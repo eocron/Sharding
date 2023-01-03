@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using App.Metrics;
 using Eocron.Sharding.AppMetrics.Jobs;
 using Eocron.Sharding.AppMetrics.Wrappings;
@@ -17,13 +18,17 @@ namespace Eocron.Sharding.AppMetrics
             this ShardBuilder<TInput, TOutput, TError> builder, 
             AppMetricsShardOptions options)
         {
-            builder.Add((s, shardId)=> AddAppMetrics<TInput, TOutput, TError>(s, options));
+            builder.Add((s, shardId)=> AddAppMetrics(s, options, builder));
             return builder;
         }
-        private static IServiceCollection AddAppMetrics<TInput, TOutput, TError>(
-            IServiceCollection container,
-            AppMetricsShardOptions options)
+        private static IServiceCollection AddAppMetrics<TInput, TOutput, TError>(IServiceCollection container,
+            AppMetricsShardOptions options, ShardBuilder<TInput, TOutput, TError> shardBuilder)
         {
+            if (container.All(x => x.ServiceType != typeof(IMetrics)))
+            {
+                container.AddTransient<IMetrics>(x =>
+                    shardBuilder.ParentServiceProvider.GetRequiredService<IMetrics>());
+            }
             return container
                 .Replace<IShardInputManager<TInput>>((x, prev) =>
                     new MonitoredShardInputManager<TInput>(prev, x.GetRequiredService<IMetrics>(),
@@ -31,18 +36,16 @@ namespace Eocron.Sharding.AppMetrics
                 .Replace<IShardOutputProvider<TOutput, TError>>((x, prev) =>
                     new MonitoredShardOutputProvider<TOutput, TError>(prev, x.GetRequiredService<IMetrics>(),
                         GetShardTags(x, options.Tags)))
-                .Replace<IJob>((x, prev) =>
-                    new CompoundJob(
-                        prev,
-                        new RestartUntilCancelledJob(
-                            new ShardMonitoringJob(
-                                x.GetRequiredService<IShardStateProvider>(),
-                                x.GetRequiredService<IProcessDiagnosticInfoProvider>(),
-                                x.GetRequiredService<IMetrics>(),
-                                options.CheckTimeout,
-                                GetShardTags(x, options.Tags)),
-                            x.GetRequiredService<ILoggerFactory>().CreateLogger<ShardMonitoringJob>(),
-                            RestartPolicyOptions.Constant(options.CheckInterval))));
+                .AddSingleton<IJob>(x =>
+                    new RestartUntilCancelledJob(
+                        new ShardMonitoringJob(
+                            x.GetRequiredService<IShardStateProvider>(),
+                            x.GetRequiredService<IProcessDiagnosticInfoProvider>(),
+                            x.GetRequiredService<IMetrics>(),
+                            options.CheckTimeout,
+                            GetShardTags(x, options.Tags)),
+                        x.GetRequiredService<ILoggerFactory>().CreateLogger<ShardMonitoringJob>(),
+                        RestartPolicyOptions.Constant(options.CheckInterval)));
         }
 
         private static IReadOnlyDictionary<string, string> GetShardTags(IServiceProvider provider,

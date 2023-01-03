@@ -1,27 +1,23 @@
-﻿using Eocron.Sharding.Jobs;
+﻿using System;
+using System.Linq;
+using Eocron.Sharding.Handlers;
+using Eocron.Sharding.Jobs;
+using Eocron.Sharding.Options;
 using Eocron.Sharding.Processing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using Eocron.Sharding.Handlers;
-using Eocron.Sharding.Options;
 
 namespace Eocron.Sharding
 {
     public static class ShardBuilderExtensions
     {
-        public static IServiceCollection AddShardProcessWatcherHostedService(this IServiceCollection services)
-        {
-            services.AddSingleton<ChildProcessWatcher>(x => new ChildProcessWatcher(x.GetRequiredService<ILogger<ChildProcessWatcher>>()));
-            services.AddSingleton<IChildProcessWatcher>(x => x.GetRequiredService<ChildProcessWatcher>());
-            services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ChildProcessWatcher>()));
-            return services;
-        }
-
         public static IServiceCollection AddShardFactory<TInput, TOutput, TError>(this IServiceCollection services,
             Action<IServiceProvider, ShardBuilder<TInput, TOutput, TError>> builderConfigurator)
         {
+            if (services.All(x => x.ServiceType != typeof(ChildProcessWatcher)))
+                AddShardProcessWatcherHostedService(services);
+
             services.AddSingleton(x =>
             {
                 var builder = new ShardBuilder<TInput, TOutput, TError>()
@@ -29,11 +25,44 @@ namespace Eocron.Sharding
                     .WithTransient(x.GetRequiredService<IChildProcessWatcher>())
                     .WithTransient(
                         x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>());
-                    builderConfigurator(x, builder);
+                builder.ParentServiceProvider = x;
+                builderConfigurator(x, builder);
                 return builder.CreateFactory();
             });
             return services;
         }
+
+        /// <summary>
+        ///     Periodically restart shard.
+        /// </summary>
+        /// <typeparam name="TInput"></typeparam>
+        /// <typeparam name="TOutput"></typeparam>
+        /// <typeparam name="TError"></typeparam>
+        /// <param name="builder"></param>
+        /// <param name="interval"></param>
+        /// <param name="forceOnBusy">
+        ///     True - restarter should ignore current state of shard; False - restarter will wait until
+        ///     shard is ready to serve messages (i.e not busy with anything, and will not obstruct processing)
+        /// </param>
+        /// <returns></returns>
+        public static ShardBuilder<TInput, TOutput, TError> WithAutoRestart<TInput, TOutput, TError>(
+            this ShardBuilder<TInput, TOutput, TError> builder,
+            TimeSpan interval,
+            bool forceOnBusy = false)
+        {
+            builder.Add((s, _) => s.AddSingleton<IJob>(x =>
+                new RestartUntilCancelledJob(
+                    new AutoRestartJob(x.GetRequiredService<ILifetimeManager>(),
+                        x.GetRequiredService<IShardStateProvider>(), true, forceOnBusy),
+                    x.GetRequiredService<ILoggerFactory>().CreateLogger<AutoRestartJob>(),
+                    new RestartPolicyOptions
+                    {
+                        OnErrorDelay = interval,
+                        OnSuccessDelay = interval
+                    })));
+            return builder;
+        }
+
 
         public static ShardBuilder<TInput, TOutput, TError> WithProcessJob<TInput, TOutput, TError>(
             this ShardBuilder<TInput, TOutput, TError> builder,
@@ -47,7 +76,7 @@ namespace Eocron.Sharding
             this ShardBuilder<TInput, TOutput, TError> builder,
             Func<IShardProcessJob<TInput, TOutput, TError>, IShardProcessJob<TInput, TOutput, TError>> wrapProvider)
         {
-            builder.Add((s, shardId) =>
+            builder.Add((s, _) =>
             {
                 s.Replace<IShardProcessJob<TInput, TOutput, TError>>((_, prev) => wrapProvider(prev));
             });
@@ -60,13 +89,13 @@ namespace Eocron.Sharding
             ProcessShardOptions options)
         {
             container
-                .AddSingleton<IShardProcessJob<TInput, TOutput, TError>>(x => 
+                .AddSingleton<IShardProcessJob<TInput, TOutput, TError>>(x =>
                     new ProcessJob<TInput, TOutput, TError>(
-                    options,
-                    x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>(),
-                    x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
-                    x.GetRequiredService<IChildProcessWatcher>(),
-                    shardId))
+                        options,
+                        x.GetRequiredService<IInputOutputHandlerFactory<TInput, TOutput, TError>>(),
+                        x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
+                        x.GetRequiredService<IChildProcessWatcher>(),
+                        shardId))
                 .AddSingleton<IImmutableShardProcess>(x =>
                     x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IProcessDiagnosticInfoProvider>(x =>
@@ -79,7 +108,8 @@ namespace Eocron.Sharding
                     x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
                 .AddSingleton<IJob>(x =>
                     x.GetRequiredService<IShardProcessJob<TInput, TOutput, TError>>())
-                .Replace<IJob, LifetimeJob>((x, prev) => new LifetimeJob(prev, x.GetRequiredService<ILoggerFactory>().CreateLogger<LifetimeJob>(), true))
+                .Replace<IJob, LifetimeJob>((x, prev) =>
+                    new LifetimeJob(prev, x.GetRequiredService<ILoggerFactory>().CreateLogger<LifetimeJob>(), true))
                 .AddSingleton<ILifetimeManager>(x => x.GetRequiredService<LifetimeJob>())
                 .AddSingleton<ILifetimeProvider>(x => x.GetRequiredService<LifetimeJob>())
                 .Replace<IJob>((x, prev) => new RestartUntilCancelledJob(
@@ -87,6 +117,15 @@ namespace Eocron.Sharding
                     x.GetRequiredService<ILoggerFactory>().CreateLogger<ProcessJob<TInput, TOutput, TError>>(),
                     options.RestartPolicy));
             return container;
+        }
+
+        private static IServiceCollection AddShardProcessWatcherHostedService(this IServiceCollection services)
+        {
+            services.AddSingleton(x => new ChildProcessWatcher(x.GetRequiredService<ILogger<ChildProcessWatcher>>()));
+            services.AddSingleton<IChildProcessWatcher>(x => x.GetRequiredService<ChildProcessWatcher>());
+            services.AddSingleton<IHostedService>(
+                x => new JobHostedService(x.GetRequiredService<ChildProcessWatcher>()));
+            return services;
         }
     }
 }

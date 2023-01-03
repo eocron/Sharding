@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Eocron.Sharding.Helpers;
 using Eocron.Sharding.Messaging;
 using Eocron.Sharding.Pools;
+using Eocron.Sharding.Processing;
 
 namespace Eocron.Sharding
 {
@@ -66,14 +67,14 @@ namespace Eocron.Sharding
             }
         }
 
-        public static void ClearOutputAndErrors<TInput, TOutput, TError>(
-            this IShard<TInput, TOutput, TError> shard)
+        public static void ClearOutputAndErrors<TOutput, TError>(
+            this IShardOutputProvider<TOutput, TError> shard)
         {
             while (shard.Outputs.TryRead(out var _) || shard.Errors.TryRead(out var _)) { }
         }
 
-        public static async Task WhenReady<TInput, TOutput, TError>(
-            this IShard<TInput, TOutput, TError> shard,
+        public static async Task WhenReady(
+            this IShardStateProvider shard,
             CancellationToken ct)
         {
             await DelayHelper.WhileTrueAsync(async () => !await shard.IsReadyAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);

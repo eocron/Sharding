@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -27,14 +28,14 @@ namespace Eocron.Sharding
             return await _container.GetRequiredService<IShardStateProvider>().IsReadyAsync(ct).ConfigureAwait(false);
         }
 
-        public async Task PublishAsync(IEnumerable<Messaging.BrokerMessage<TInput>> messages, CancellationToken ct)
+        public async Task PublishAsync(IEnumerable<BrokerMessage<TInput>> messages, CancellationToken ct)
         {
             await _container.GetRequiredService<IShardInputManager<TInput>>().PublishAsync(messages, ct).ConfigureAwait(false);
         }
 
         public async Task RunAsync(CancellationToken ct)
         {
-            await _container.GetRequiredService<IJob>().RunAsync(ct).ConfigureAwait(false);
+            await new CompoundJob(_container.GetServices<IJob>().ToArray()).RunAsync(ct).ConfigureAwait(false);
         }
 
         public ChannelReader<BrokerMessage<TError>> Errors =>
