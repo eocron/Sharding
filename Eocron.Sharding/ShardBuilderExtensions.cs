@@ -34,11 +34,7 @@ namespace Eocron.Sharding
                     new AutoRestartJob(x.GetRequiredService<ILifetimeManager>(),
                         x.GetRequiredService<IShardStateProvider>(), true, forceOnBusy),
                     x.GetRequiredService<ILoggerFactory>().CreateLogger<AutoRestartJob>(),
-                    new RestartPolicyOptions
-                    {
-                        OnErrorDelay = interval,
-                        OnSuccessDelay = interval
-                    })));
+                    RestartPolicyOptions.Constant(interval))));
             return builder;
         }
 

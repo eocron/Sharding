@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Channels;
+using Eocron.Sharding.Helpers;
 
 namespace Eocron.Sharding.Options
 {
@@ -32,7 +33,9 @@ namespace Eocron.Sharding.Options
             {
                 FullMode = BoundedChannelFullMode.Wait
             };
-            RestartPolicy = RestartPolicyOptions.Constant(TimeSpan.FromSeconds(1));
+            RestartPolicy = RestartPolicyOptions.Custom(
+                x => TimeSpan.Zero,
+                x => DelayHelper.ExponentialDelayPolicy(x, TimeSpan.FromMilliseconds(1), TimeSpan.FromMinutes(1)));
         }
     }
 }

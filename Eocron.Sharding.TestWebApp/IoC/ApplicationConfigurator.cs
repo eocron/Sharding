@@ -48,7 +48,7 @@ namespace Eocron.Sharding.TestWebApp.IoC
                         PoolSize = 3
                     }));
             services.AddSingleton<IShardPool<string, string, string>>(x => x.GetRequiredService<ConstantShardPool<string, string, string>>());
-            services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ShardPool<string, string, string>>()));
+            services.AddSingleton<IHostedService>(x => new JobHostedService(x.GetRequiredService<ConstantShardPool<string, string, string>>()));
             services.AddSingleton<IShardProvider<string, string, string>>(x => x.GetRequiredService<IShardPool<string, string, string>>());
         }
     }

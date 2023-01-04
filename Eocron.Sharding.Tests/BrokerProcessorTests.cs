@@ -42,11 +42,7 @@ namespace Eocron.Sharding.Tests
                             new TestLogger("processor")
                         ),
                         new TestLogger("restart_processor"),
-                        new RestartPolicyOptions()
-                        {
-                            OnErrorDelay = TimeSpan.Zero,
-                            OnSuccessDelay = TimeSpan.FromSeconds(1)
-                        }));
+                        RestartPolicyOptions.Constant(TimeSpan.FromSeconds(1), TimeSpan.Zero)));
             _task = _job.RunAsync(_cts.Token);
         }
 

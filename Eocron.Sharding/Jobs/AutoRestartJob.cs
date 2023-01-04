@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Eocron.Sharding.Handlers;
 using Eocron.Sharding.Processing;
 
 namespace Eocron.Sharding.Jobs

@@ -24,6 +24,8 @@ namespace Eocron.Sharding.Jobs
         public async Task RunAsync(CancellationToken ct)
         {
             await Task.Yield();
+            int successCount = 0;
+            int errorCount = 0;
             while (!ct.IsCancellationRequested)
             {
                 var sw = Stopwatch.StartNew();
@@ -31,8 +33,9 @@ namespace Eocron.Sharding.Jobs
                 {
                     _logger.LogDebug("Job running");
                     await _inner.RunAsync(ct).ConfigureAwait(false);
-                    _logger.LogDebug("Job completed, running for {elapsed}", sw.Elapsed);
-                    await Task.Delay(_options.OnSuccessDelay, ct).ConfigureAwait(false);
+                    _logger.LogDebug("Job completed, running for {elapsed}, (s:{success_count},e:{error_count})", sw.Elapsed, successCount, errorCount);
+                    errorCount = 0;
+                    await Task.Delay(_options.OnSuccessDelay(successCount++), ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -41,10 +44,11 @@ namespace Eocron.Sharding.Jobs
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Job completed with error, running for {elapsed}", sw.Elapsed);
+                    _logger.LogError(e, "Job completed with error, running for {elapsed}, (s:{success_count},e:{error_count})", sw.Elapsed, successCount, errorCount);
                     try
                     {
-                        await Task.Delay(_options.OnErrorDelay, ct).ConfigureAwait(false);
+                        successCount = 0;
+                        await Task.Delay(_options.OnErrorDelay(errorCount++), ct).ConfigureAwait(false);
                     }
                     catch
                     {
